@@ -1,0 +1,43 @@
+{
+  "name": "mini-claude-code",
+  "version": "0.1.0",
+  "description": "A minimal CLI programming agent inspired by Claude Code",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mini-claude": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "cli",
+    "agent",
+    "ai",
+    "programming-assistant"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ai": "^6.0.162",
+    "@ai-sdk/anthropic": "^3.0.69",
+    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/google": "^3.0.63",
+    "zod": "^4.3.6",
+    "chalk": "^5.6.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "@types/node": "^25.6.0",
+    "vitest": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.4",
+    "fast-check": "^4.6.0"
+  }
+}

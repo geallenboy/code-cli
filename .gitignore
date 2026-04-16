@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Coverage
+coverage/
+
+# Reference material
+how-claude-code-works-main
+
+# Kiro
+.kiro
