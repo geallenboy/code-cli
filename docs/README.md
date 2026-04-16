@@ -32,6 +32,7 @@
 - [Task 1: 项目初始化与工程基础搭建](./01-project-init.md)
 - [Task 2: AI Provider 工厂](./02-provider-factory.md)
 - [Task 3: Prompt 编排器](./03-prompt-orchestration.md)
+- [Task 4: 工具注册表与基础工具](./04-tool-registry.md)
 
 ## 项目结构
 
@@ -66,6 +67,7 @@ mini-claude-code/
 ## Git 提交历史
 
 ```
+71c7c97 feat: 实现工具注册表 + 3 个基础工具 (read_file, write_file, run_shell)
 6b5cad5 feat: 实现 Prompt 编排器 — 系统提示词动态组装
 aee0b3d feat: 实现 AI Provider 工厂 — Vercel AI SDK 多提供商支持
 9d087d1 chore: 项目初始化 — TypeScript + Vercel AI SDK + Vitest 工程骨架
