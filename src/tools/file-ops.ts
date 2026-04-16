@@ -8,14 +8,37 @@
  * 简化：纯文本读取（不支持图片/PDF），系统 grep（不用 ripgrep）
  */
 
+import { readFileSync, existsSync } from 'node:fs';
+
 /**
  * 读取文件内容，每行添加行号前缀
+ *
+ * 行号格式为右对齐，使用 ` | ` 分隔符。
+ * 文件不存在或读取失败时返回错误消息字符串（不抛出异常）。
+ *
  * @param filePath - 文件路径
- * @returns 带行号的文件内容
+ * @returns 带行号的文件内容，或错误消息
  */
-export function readFileContent(_filePath: string): string {
-  // TODO: Phase 1 — 实现文件读取
-  return '';
+export function readFileContent(filePath: string): string {
+  try {
+    if (!existsSync(filePath)) {
+      return `Error: File not found: ${filePath}`;
+    }
+
+    const content = readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    const maxLineNumWidth = String(lines.length).length;
+
+    return lines
+      .map((line, index) => {
+        const lineNum = String(index + 1).padStart(maxLineNumWidth, ' ');
+        return `${lineNum} | ${line}`;
+      })
+      .join('\n');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `Error reading file ${filePath}: ${message}`;
+  }
 }
 
 /**
