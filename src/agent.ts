@@ -8,7 +8,75 @@
  * 简化：单层 while(true) 循环代替双层 Generator 架构
  */
 
+import {
+  streamText,
+  stepCountIs,
+  type ModelMessage,
+  type TextPart,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
+import type { LanguageModel } from 'ai';
+import { createModel } from './provider.js';
+import { buildSystemPrompt, type ToolDescription } from './prompt.js';
+import { getToolDefinitions } from './tools/index.js';
+import { printAssistantText, printToolCall, printToolResult } from './ui.js';
 import type { AgentConfig, TokenUsage } from './types.js';
+import { RETRYABLE_STATUS_CODES } from './types.js';
+
+/**
+ * 判断错误是否可重试。
+ * 可重试的 HTTP 状态码：429 (Rate Limit), 503 (Service Unavailable), 529 (Overloaded)。
+ *
+ * @param error - 捕获的错误
+ * @returns 是否可重试
+ */
+export function isRetryableError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+
+  // Check for status property (AI SDK errors typically have this)
+  const statusCode =
+    'status' in error ? (error as { status: number }).status :
+    'statusCode' in error ? (error as { statusCode: number }).statusCode :
+    undefined;
+
+  if (statusCode !== undefined) {
+    return (RETRYABLE_STATUS_CODES as readonly number[]).includes(statusCode);
+  }
+
+  // Check error message for status codes as fallback
+  const message = 'message' in error ? String((error as { message: string }).message) : '';
+  return RETRYABLE_STATUS_CODES.some((code) => message.includes(String(code)));
+}
+
+/**
+ * 带指数退避的重试包装器。
+ *
+ * 延迟计算：min(1000 * 2^attempt, 30000) + random(0, 1000)
+ * 随机抖动防止多客户端同时重试的"惊群效应"。
+ *
+ * @param fn - 要执行的异步函数
+ * @param maxRetries - 最大重试次数（默认 3）
+ * @param signal - 可选的 AbortSignal
+ * @returns 函数执行结果
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  signal?: AbortSignal,
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (!isRetryableError(error) || attempt === maxRetries) throw error;
+      const delay = Math.min(1000 * Math.pow(2, attempt), 30000) + Math.random() * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Unreachable');
+}
 
 /**
  * Agent 核心类
@@ -16,22 +84,138 @@ import type { AgentConfig, TokenUsage } from './types.js';
  * 管理对话历史、token 追踪和 Agent Loop 执行。
  */
 export class Agent {
-  private _messages: unknown[] = [];
+  private _messages: ModelMessage[] = [];
   private abortController: AbortController | null = null;
   private totalInputTokens = 0;
   private totalOutputTokens = 0;
   private _confirmedCommands: Set<string> = new Set();
   private _isProcessing = false;
   private readonly _config: AgentConfig;
+  private readonly modelInstance: LanguageModel;
 
   constructor(config: AgentConfig) {
     this._config = config;
+    this.modelInstance = createModel(config.provider, config.model);
   }
 
-  /** 处理用户输入，进入 Agent Loop */
-  async chat(_userMessage: string): Promise<void> {
-    // TODO: Phase 1 — 实现 Agent Loop
-    throw new Error('Not implemented');
+  /**
+   * 处理用户输入，进入 Agent Loop。
+   *
+   * 核心流程：push user message → while(true) {
+   *   call streamText → stream text → collect response →
+   *   track tokens → check tool calls → if none, break →
+   *   execute tools → push messages → continue
+   * }
+   *
+   * @param userMessage - 用户输入的消息
+   */
+  async chat(userMessage: string): Promise<void> {
+    this._isProcessing = true;
+    this.abortController = new AbortController();
+
+    try {
+      // Push user message
+      this._messages.push({ role: 'user', content: userMessage });
+
+      // Build system prompt with tool descriptions
+      const tools = getToolDefinitions();
+      const toolDescriptions: ToolDescription[] = Object.entries(tools).map(
+        ([name, t]) => ({
+          name,
+          description: 'description' in t ? String(t.description) : '',
+        }),
+      );
+      const systemPrompt = buildSystemPrompt(toolDescriptions);
+
+      while (true) {
+        if (this.abortController.signal.aborted) break;
+
+        // Call streamText with retry
+        const result = await withRetry(
+          () =>
+            Promise.resolve(
+              streamText({
+                model: this.modelInstance,
+                system: systemPrompt,
+                messages: this._messages,
+                tools,
+                stopWhen: stepCountIs(1),
+                abortSignal: this.abortController?.signal,
+              }),
+            ),
+          3,
+          this.abortController.signal,
+        );
+
+        // Stream text to terminal
+        for await (const textPart of result.textStream) {
+          printAssistantText(textPart);
+        }
+
+        // Get final response data
+        const text = await result.text;
+        const usage = await result.usage;
+        const toolCalls = await result.toolCalls;
+        const toolResults = await result.toolResults;
+
+        // Track token usage
+        if (usage) {
+          this.totalInputTokens += usage.inputTokens ?? 0;
+          this.totalOutputTokens += usage.outputTokens ?? 0;
+        }
+
+        // Build assistant message content parts
+        const assistantContent: Array<TextPart | ToolCallPart> = [];
+        if (text) {
+          assistantContent.push({ type: 'text', text });
+        }
+        for (const tc of toolCalls) {
+          assistantContent.push({
+            type: 'tool-call',
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            input: tc.input,
+          });
+        }
+
+        if (assistantContent.length > 0) {
+          this._messages.push({ role: 'assistant', content: assistantContent });
+        }
+
+        // If no tool calls, the loop terminates
+        if (toolCalls.length === 0) {
+          // Print a newline after streaming text
+          if (text) {
+            process.stdout.write('\n');
+          }
+          break;
+        }
+
+        // Print tool calls and results to terminal
+        for (const tc of toolCalls) {
+          printToolCall(tc.toolName, tc.input as Record<string, unknown>);
+        }
+        for (const tr of toolResults) {
+          const outputStr = typeof tr.output === 'string'
+            ? tr.output
+            : JSON.stringify(tr.output);
+          printToolResult(tr.toolName, outputStr);
+        }
+
+        // Build tool result message
+        if (toolResults.length > 0) {
+          const resultParts: ToolResultPart[] = toolResults.map((tr) => ({
+            type: 'tool-result' as const,
+            toolCallId: tr.toolCallId,
+            toolName: tr.toolName,
+            output: { type: 'text' as const, value: typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output) },
+          }));
+          this._messages.push({ role: 'tool', content: resultParts });
+        }
+      }
+    } finally {
+      this._isProcessing = false;
+    }
   }
 
   /** 中止当前操作 */
@@ -67,7 +251,7 @@ export class Agent {
   }
 
   /** 获取消息历史 */
-  get messages(): unknown[] {
+  get messages(): ModelMessage[] {
     return this._messages;
   }
 
