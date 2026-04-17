@@ -12,7 +12,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import { readFileContent } from './file-ops.js';
-import { writeFile } from './editor.js';
+import { writeFile, editFile } from './editor.js';
 import { executeShellCommand } from './shell.js';
 
 /**
@@ -84,10 +84,33 @@ const runShellTool = tool({
 });
 
 /**
+ * edit_file 工具定义
+ *
+ * search-and-replace 精确编辑：old_string 必须唯一匹配。
+ * 这是 Claude Code 最核心的编辑策略——位置无关、抗幻觉、最小破坏。
+ */
+const editFileTool = tool({
+  description:
+    'Edit a file by replacing an exact string match. The old_string must appear exactly once in the file. Always read a file before editing it.',
+  inputSchema: z.object({
+    file_path: z.string().describe('The path to the file to edit'),
+    old_string: z.string().describe('The exact string to find and replace (must be unique in the file)'),
+    new_string: z.string().describe('The replacement string'),
+  }),
+  execute: async ({ file_path, old_string, new_string }) => {
+    try {
+      return editFile(file_path, old_string, new_string);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error: ${message}`;
+    }
+  },
+});
+
+/**
  * 获取所有工具定义（传给 AI SDK 的 streamText）
  *
  * 返回一个 Record，key 为工具名，value 为 Tool 定义。
- * Phase 1 注册 3 个基础工具：read_file, write_file, run_shell。
  *
  * @returns 工具名到工具定义的映射
  */
@@ -95,6 +118,7 @@ export function getToolDefinitions(): Record<string, Tool> {
   return {
     read_file: readFileTool,
     write_file: writeFileTool,
+    edit_file: editFileTool,
     run_shell: runShellTool,
   };
 }
