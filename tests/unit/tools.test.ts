@@ -67,9 +67,9 @@ describe('Tool Registry', () => {
       expect(Object.keys(tools)).toContain('run_shell');
     });
 
-    it('should return exactly 3 tools for Phase 1', () => {
+    it('should return exactly 6 tools', () => {
       const tools = getToolDefinitions();
-      expect(Object.keys(tools)).toHaveLength(3);
+      expect(Object.keys(tools)).toHaveLength(6);
     });
 
     it('should have description for each tool', () => {

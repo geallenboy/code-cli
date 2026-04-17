@@ -75,3 +75,39 @@ describe('isDangerousCommand', () => {
     expect(isDangerousCommand('cat file.txt')).toBe(false);
   });
 });
+
+import { needsConfirmation } from '../../src/tools/shell.js';
+
+describe('needsConfirmation', () => {
+  it('should return confirmation message for dangerous shell commands', () => {
+    const result = needsConfirmation('run_shell', { command: 'rm -rf /tmp/test' });
+    expect(result).not.toBeNull();
+    expect(result).toContain('Dangerous command');
+  });
+
+  it('should return null for safe shell commands', () => {
+    expect(needsConfirmation('run_shell', { command: 'echo hello' })).toBeNull();
+    expect(needsConfirmation('run_shell', { command: 'ls -la' })).toBeNull();
+    expect(needsConfirmation('run_shell', { command: 'git status' })).toBeNull();
+  });
+
+  it('should return null for non-shell tools', () => {
+    expect(needsConfirmation('read_file', { file_path: 'test.ts' })).toBeNull();
+    expect(needsConfirmation('edit_file', { file_path: 'test.ts' })).toBeNull();
+  });
+
+  it('should detect sudo as dangerous', () => {
+    const result = needsConfirmation('run_shell', { command: 'sudo apt install vim' });
+    expect(result).not.toBeNull();
+  });
+
+  it('should detect git push as dangerous', () => {
+    const result = needsConfirmation('run_shell', { command: 'git push origin main' });
+    expect(result).not.toBeNull();
+  });
+
+  it('should handle missing command gracefully', () => {
+    expect(needsConfirmation('run_shell', {})).toBeNull();
+    expect(needsConfirmation('run_shell', { command: 123 })).toBeNull();
+  });
+});

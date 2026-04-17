@@ -21,6 +21,9 @@
 | `@ai-sdk/anthropic` | ^3.0.69 | Anthropic 适配器 |
 | `@ai-sdk/openai` | ^3.0.53 | OpenAI 适配器 |
 | `@ai-sdk/google` | ^3.0.63 | Google 适配器 |
+| `@ai-sdk/deepseek` | ^2.0.29 | DeepSeek 适配器 |
+| `@ai-sdk/openai-compatible` | ^2.0.41 | 智谱等 OpenAI 兼容 API |
+| dotenv | ^17.4.2 | .env 文件加载 |
 | Zod | ^4.3.6 | 工具参数 Schema 验证 |
 | Chalk | ^5.6.2 | 终端彩色输出 |
 | Vitest | ^4.1.4 | 测试框架 |
@@ -29,12 +32,24 @@
 
 ## 开发日志
 
+### Phase 1: 最小可运行骨架
+
 - [Task 1: 项目初始化与工程基础搭建](./01-project-init.md)
 - [Task 2: AI Provider 工厂](./02-provider-factory.md)
 - [Task 3: Prompt 编排器](./03-prompt-orchestration.md)
 - [Task 4: 工具注册表与基础工具](./04-tool-registry.md)
 - [Task 5: Agent Loop 核心循环](./05-agent-loop.md)
 - [Task 6: CLI 交互界面](./06-cli-interface.md)
+- [Task 7: Phase 1 检查点](./07-phase1-checkpoint.md)
+
+### Phase 2: 核心能力增强
+
+- [Task 8: Search-and-Replace 编辑策略](./08-edit-strategy.md)
+- [Task 9: 文件搜索与浏览工具](./09-file-search.md)
+- [Task 10: 危险命令检测与用户确认](./10-dangerous-commands.md)
+- [Task 11: 上下文压缩](./11-context-compaction.md)
+- [Task 12: 会话持久化](./12-session-persistence.md)
+- [Task 13: Phase 2 检查点](./13-phase2-checkpoint.md)
 
 ## 项目结构
 
@@ -69,6 +84,12 @@ mini-claude-code/
 ## Git 提交历史
 
 ```
+--- Phase 2 ---
+98caf77 feat: 实现 search-and-replace 编辑策略 (edit_file)
+
+--- Phase 1 → master (tag: v0.1.0) ---
+a382229 feat: 添加 .env 配置支持
+f4f0605 feat: 新增 DeepSeek + 智谱(Zhipu/GLM) 提供商支持
 83c6922 feat: 实现 Agent Loop 核心循环 + CLI 交互界面
 71c7c97 feat: 实现工具注册表 + 3 个基础工具 (read_file, write_file, run_shell)
 6b5cad5 feat: 实现 Prompt 编排器 — 系统提示词动态组装

@@ -34,16 +34,25 @@ export function isDangerousCommand(command: string): boolean {
 }
 
 /**
- * 判断工具调用是否需要用户确认
+ * 判断工具调用是否需要用户确认。
+ *
+ * 需要确认的场景：
+ * 1. run_shell 执行危险命令（匹配 DANGEROUS_PATTERNS）
+ * 2. write_file 创建新文件（Phase 2 中由 Agent 层处理）
+ *
  * @param toolName - 工具名称
  * @param input - 工具输入参数
  * @returns 确认提示消息，不需要确认时返回 null
  */
 export function needsConfirmation(
-  _toolName: string,
-  _input: Record<string, unknown>,
+  toolName: string,
+  input: Record<string, unknown>,
 ): string | null {
-  // TODO: Phase 2 — 实现确认逻辑
+  if (toolName === 'run_shell' && typeof input['command'] === 'string') {
+    if (isDangerousCommand(input['command'])) {
+      return `⚠️  Dangerous command detected: ${input['command']}`;
+    }
+  }
   return null;
 }
 

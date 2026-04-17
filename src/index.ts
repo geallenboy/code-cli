@@ -17,6 +17,8 @@ import { parseArgs, runRepl } from './cli.js';
 import { Agent } from './agent.js';
 import { validateApiKey, getDefaultModel, getContextWindow } from './provider.js';
 import { ConfigurationError } from './errors.js';
+import { loadLatestSession } from './session.js';
+import type { ModelMessage } from 'ai';
 
 async function main(): Promise<void> {
   const args = parseArgs();
@@ -45,6 +47,17 @@ async function main(): Promise<void> {
   });
 
   console.log(chalk.dim(`Provider: ${args.provider} | Model: ${model}`));
+
+  // Handle --resume: restore previous session
+  if (args.resume) {
+    const session = loadLatestSession();
+    if (session) {
+      agent.restoreMessages(session.messages as ModelMessage[]);
+      console.log(chalk.dim(`Resumed session: ${session.id}`));
+    } else {
+      console.log(chalk.dim('No previous session found.'));
+    }
+  }
 
   if (args.prompt) {
     // One-shot mode: execute prompt and exit

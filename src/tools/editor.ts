@@ -8,28 +8,69 @@
  * 简化：核心的唯一性约束 + 精确匹配
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 /**
  * 执行 search-and-replace 编辑
  *
- * 1. old_string 未找到 → 返回错误
- * 2. old_string 出现多次 → 返回错误，要求更多上下文
- * 3. old_string 唯一匹配 → 替换为 new_string
+ * 三种情况：
+ * 1. old_string 未找到 → 返回错误消息
+ * 2. old_string 出现多次 → 返回错误消息，要求提供更多上下文
+ * 3. old_string 唯一匹配 → 替换为 new_string，写回文件
+ *
+ * 设计理念（参考 Claude Code）：
+ * - 位置无关：不依赖行号，多轮编辑不会错位
+ * - 抗幻觉：old_string 必须真实存在于文件中
+ * - 最小破坏：只改需要改的部分
  *
  * @param filePath - 文件路径
- * @param oldString - 要替换的原始字符串
+ * @param oldString - 要替换的原始字符串（必须精确匹配）
  * @param newString - 替换后的新字符串
  * @returns 操作结果描述
  */
 export function editFile(
-  _filePath: string,
-  _oldString: string,
-  _newString: string,
+  filePath: string,
+  oldString: string,
+  newString: string,
 ): string {
-  // TODO: Phase 2 — 实现 search-and-replace 编辑
-  return '';
+  try {
+    if (!existsSync(filePath)) {
+      return `Error: File not found: ${filePath}`;
+    }
+
+    const content = readFileSync(filePath, 'utf-8');
+
+    // Count occurrences
+    let count = 0;
+    let searchFrom = 0;
+    while (true) {
+      const index = content.indexOf(oldString, searchFrom);
+      if (index === -1) break;
+      count++;
+      searchFrom = index + 1;
+    }
+
+    if (count === 0) {
+      return `Error: old_string not found in ${filePath}. Make sure the string matches exactly, including whitespace and indentation.`;
+    }
+
+    if (count > 1) {
+      return `Error: old_string found ${count} times in ${filePath}. Please provide more context to make the match unique.`;
+    }
+
+    // Exactly one match — perform replacement
+    const newContent = content.replace(oldString, newString);
+    writeFileSync(filePath, newContent, 'utf-8');
+
+    // Calculate what changed for the success message
+    const oldLines = oldString.split('\n').length;
+    const newLines = newString.split('\n').length;
+    return `File edited: ${filePath} (replaced ${oldLines} line${oldLines > 1 ? 's' : ''} with ${newLines} line${newLines > 1 ? 's' : ''})`;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `Error editing file ${filePath}: ${message}`;
+  }
 }
 
 /**

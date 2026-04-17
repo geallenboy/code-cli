@@ -11,9 +11,24 @@
 
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
-import { readFileContent } from './file-ops.js';
-import { writeFile } from './editor.js';
-import { executeShellCommand } from './shell.js';
+import { readFileContent, grepSearch, listFiles } from './file-ops.js';
+import { writeFile, editFile } from './editor.js';
+import { executeShellCommand, needsConfirmation } from './shell.js';
+
+/**
+ * 确认回调函数类型。
+ * 返回 true 表示用户允许执行，false 表示拒绝。
+ */
+export type ConfirmFn = (message: string) => Promise<boolean>;
+
+/**
+ * 工具上下文：运行时注入的配置（yolo 模式、确认回调、已确认命令白名单）
+ */
+export interface ToolContext {
+  yolo: boolean;
+  confirm: ConfirmFn;
+  confirmedCommands: Set<string>;
+}
 
 /**
  * read_file 工具定义
@@ -59,23 +74,67 @@ const writeFileTool = tool({
 });
 
 /**
- * run_shell 工具定义
+ * edit_file 工具定义
  *
- * 执行 Shell 命令，带超时和输出缓冲区限制。
+ * search-and-replace 精确编辑：old_string 必须唯一匹配。
+ * 这是 Claude Code 最核心的编辑策略——位置无关、抗幻觉、最小破坏。
  */
-const runShellTool = tool({
+const editFileTool = tool({
   description:
-    'Execute a shell command and return its output. Use this for running tests, installing packages, git operations, etc. Commands have a 30-second default timeout.',
+    'Edit a file by replacing an exact string match. The old_string must appear exactly once in the file. Always read a file before editing it.',
   inputSchema: z.object({
-    command: z.string().describe('The shell command to execute'),
-    timeout: z
-      .number()
-      .optional()
-      .describe('Timeout in milliseconds (default: 30000)'),
+    file_path: z.string().describe('The path to the file to edit'),
+    old_string: z.string().describe('The exact string to find and replace (must be unique in the file)'),
+    new_string: z.string().describe('The replacement string'),
   }),
-  execute: async ({ command, timeout }) => {
+  execute: async ({ file_path, old_string, new_string }) => {
     try {
-      return truncateResult(executeShellCommand(command, timeout));
+      return editFile(file_path, old_string, new_string);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error: ${message}`;
+    }
+  },
+});
+
+/**
+ * grep_search 工具定义
+ *
+ * 递归搜索文件内容，返回匹配行（含文件路径和行号）。
+ */
+const grepSearchTool = tool({
+  description:
+    'Search for a pattern in files recursively. Returns matching lines with file paths and line numbers. Use this to find code references, function definitions, or specific strings across the codebase.',
+  inputSchema: z.object({
+    pattern: z.string().describe('The search pattern (regex supported)'),
+    search_path: z.string().optional().describe('Directory to search in (default: current directory)'),
+    include: z.string().optional().describe('File pattern filter, e.g. "*.ts" or "*.py"'),
+  }),
+  execute: async ({ pattern, search_path, include }) => {
+    try {
+      return truncateResult(grepSearch(pattern, search_path, include));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error: ${message}`;
+    }
+  },
+});
+
+/**
+ * list_files 工具定义
+ *
+ * 列出目录中的文件，支持模式过滤。
+ */
+const listFilesTool = tool({
+  description:
+    'List files in a directory, optionally filtered by pattern. Excludes node_modules, .git, dist, and other common build directories. Use this to understand project structure.',
+  inputSchema: z.object({
+    pattern: z.string().describe('File pattern to match, e.g. "*.ts", "*.py", or "." for all files'),
+    base_path: z.string().optional().describe('Directory to list files from (default: current directory)'),
+  }),
+  execute: async ({ pattern, base_path }) => {
+    try {
+      return truncateResult(listFiles(pattern, base_path));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       return `Error: ${message}`;
@@ -86,15 +145,59 @@ const runShellTool = tool({
 /**
  * 获取所有工具定义（传给 AI SDK 的 streamText）
  *
- * 返回一个 Record，key 为工具名，value 为 Tool 定义。
- * Phase 1 注册 3 个基础工具：read_file, write_file, run_shell。
+ * 接受 ToolContext 注入确认逻辑。run_shell 工具在执行前会检查
+ * 危险命令，非 yolo 模式下需要用户确认。
  *
+ * @param ctx - 工具上下文（可选，默认无确认）
  * @returns 工具名到工具定义的映射
  */
-export function getToolDefinitions(): Record<string, Tool> {
+export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
+  /**
+   * run_shell 工具定义（带确认逻辑）
+   *
+   * 执行前检查 needsConfirmation()：
+   * - yolo 模式 → 直接执行
+   * - 已确认的命令 → 直接执行
+   * - 危险命令 → 调用 confirm 回调，用户拒绝则返回 denied 消息
+   */
+  const runShellTool = tool({
+    description:
+      'Execute a shell command and return its output. Use this for running tests, installing packages, git operations, etc. Commands have a 30-second default timeout.',
+    inputSchema: z.object({
+      command: z.string().describe('The shell command to execute'),
+      timeout: z
+        .number()
+        .optional()
+        .describe('Timeout in milliseconds (default: 30000)'),
+    }),
+    execute: async ({ command, timeout }) => {
+      try {
+        // Check if confirmation is needed
+        if (ctx && !ctx.yolo) {
+          const confirmMsg = needsConfirmation('run_shell', { command });
+          if (confirmMsg && !ctx.confirmedCommands.has(command)) {
+            const allowed = await ctx.confirm(confirmMsg);
+            if (!allowed) {
+              return 'User denied this action. Please try a different approach.';
+            }
+            // Add to whitelist so same command won't ask again
+            ctx.confirmedCommands.add(command);
+          }
+        }
+        return truncateResult(executeShellCommand(command, timeout));
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return `Error: ${message}`;
+      }
+    },
+  });
+
   return {
     read_file: readFileTool,
     write_file: writeFileTool,
+    edit_file: editFileTool,
+    grep_search: grepSearchTool,
+    list_files: listFilesTool,
     run_shell: runShellTool,
   };
 }
