@@ -21,7 +21,9 @@ import { buildSystemPrompt, type ToolDescription } from './prompt.js';
 import { getToolDefinitions, type ToolContext } from './tools/index.js';
 import type { StreamEvent, Terminal, ContinueReason } from './types.js';
 import { RETRYABLE_STATUS_CODES } from './types.js';
-import { shouldCompact, compactConversation } from './compactor.js';
+import { snipCompact } from './compactor/snip.js';
+import { microCompact } from './compactor/micro.js';
+import { shouldAutoCompact, autoCompact } from './compactor/auto.js';
 
 /**
  * 判断错误是否可重试。
@@ -213,10 +215,32 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
       state.messages.push({ role: 'tool', content: resultParts });
     }
 
-    // Auto-compact if approaching context window limit
-    if (shouldCompact(usage?.inputTokens ?? 0, params.effectiveContextWindow)) {
-      state.messages = await compactConversation(state.messages, params.model);
-      yield { type: 'compact' as const, level: 'auto' as const, tokensFreed: 0 };
+    // === Three-level compression pipeline ===
+
+    // 1. Snip — zero cost
+    const snipResult = snipCompact(state.messages);
+    state.messages = snipResult.messages;
+    if (snipResult.tokensFreed > 0) {
+      yield { type: 'compact' as const, level: 'snip' as const, tokensFreed: snipResult.tokensFreed };
+    }
+
+    // 2. Micro — zero cost
+    const microResult = microCompact(state.messages);
+    state.messages = microResult.messages;
+    if (microResult.tokensFreed > 0) {
+      yield { type: 'compact' as const, level: 'micro' as const, tokensFreed: microResult.tokensFreed };
+    }
+
+    // 3. Auto — full cost (only if needed)
+    if (shouldAutoCompact(usage?.inputTokens ?? 0, params.effectiveContextWindow)) {
+      const autoResult = await autoCompact(state.messages, params.model, state.autocompactFailures);
+      if (autoResult.failed) {
+        state.autocompactFailures++;
+      } else {
+        state.messages = autoResult.messages;
+        state.autocompactFailures = 0;
+        yield { type: 'compact' as const, level: 'auto' as const, tokensFreed: 0 };
+      }
     }
 
     state.turnCount++;

@@ -162,8 +162,11 @@ export class QueryEngine {
 
   /** 手动触发压缩 */
   async compact(): Promise<void> {
-    const { compactConversation } = await import('./compactor.js');
-    this._messages = await compactConversation(this._messages, this.modelInstance);
+    const { autoCompact } = await import('./compactor/auto.js');
+    const result = await autoCompact(this._messages, this.modelInstance, 0);
+    if (!result.failed) {
+      this._messages = result.messages;
+    }
   }
 
   /** 当前是否正在处理 */
