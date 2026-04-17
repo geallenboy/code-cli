@@ -79,6 +79,32 @@ export interface CliArgs {
   resume: boolean;
 }
 
+// ===== 双层架构类型 (Phase 4) =====
+
+/** query() generator yield 的事件类型 */
+export type StreamEvent =
+  | { type: 'text'; text: string }
+  | { type: 'tool_call'; toolName: string; input: Record<string, unknown> }
+  | { type: 'tool_result'; toolName: string; result: string }
+  | { type: 'compact'; level: 'snip' | 'micro' | 'auto'; tokensFreed: number }
+  | { type: 'error'; error: Error; recoverable: boolean }
+  | { type: 'usage'; inputTokens: number; outputTokens: number };
+
+/** query() generator 的返回类型 */
+export interface Terminal {
+  reason: 'complete' | 'aborted' | 'budget_exceeded' | 'max_turns' | 'error';
+  lastAssistantText?: string;
+}
+
+/** Continue Site 转换原因 */
+export type ContinueReason = 'next_turn' | 'ptl_recovery' | 'mot_escalation' | 'mot_continuation';
+
+/** QueryEngine 配置 */
+export interface QueryEngineConfig extends AgentConfig {
+  maxTurns?: number;        // 默认 50
+  maxBudgetUsd?: number;    // 默认无限制
+}
+
 // ===== 错误相关常量 =====
 
 /** 可重试的 HTTP 状态码 */
