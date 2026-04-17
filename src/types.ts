@@ -10,7 +10,7 @@
 /** Agent 配置 */
 export interface AgentConfig {
   /** AI 提供商 */
-  provider: 'anthropic' | 'openai' | 'google';
+  provider: 'anthropic' | 'openai' | 'google' | 'deepseek' | 'zhipu';
   /** 模型名称 */
   model: string;
   /** 是否跳过确认 */

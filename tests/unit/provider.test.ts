@@ -32,10 +32,12 @@ describe('Provider Factory', () => {
   });
 
   describe('PROVIDER_CONFIG', () => {
-    it('should have configurations for anthropic, openai, and google', () => {
+    it('should have configurations for all five providers', () => {
       expect(PROVIDER_CONFIG).toHaveProperty('anthropic');
       expect(PROVIDER_CONFIG).toHaveProperty('openai');
       expect(PROVIDER_CONFIG).toHaveProperty('google');
+      expect(PROVIDER_CONFIG).toHaveProperty('deepseek');
+      expect(PROVIDER_CONFIG).toHaveProperty('zhipu');
     });
 
     it('should have required fields for each provider', () => {
@@ -60,6 +62,14 @@ describe('Provider Factory', () => {
       expect(getDefaultModel('google')).toBe('gemini-2.5-flash');
     });
 
+    it('should return the default model for deepseek', () => {
+      expect(getDefaultModel('deepseek')).toBe('deepseek-chat');
+    });
+
+    it('should return the default model for zhipu', () => {
+      expect(getDefaultModel('zhipu')).toBe('glm-4-plus');
+    });
+
     it('should throw ConfigurationError for unknown provider', () => {
       expect(() => getDefaultModel('unknown')).toThrow(ConfigurationError);
       expect(() => getDefaultModel('unknown')).toThrow(/Unknown provider/);
@@ -77,6 +87,14 @@ describe('Provider Factory', () => {
 
     it('should return 1M for google', () => {
       expect(getContextWindow('google')).toBe(1_000_000);
+    });
+
+    it('should return 64k for deepseek', () => {
+      expect(getContextWindow('deepseek')).toBe(64_000);
+    });
+
+    it('should return 128k for zhipu', () => {
+      expect(getContextWindow('zhipu')).toBe(128_000);
     });
 
     it('should throw ConfigurationError for unknown provider', () => {
@@ -98,6 +116,16 @@ describe('Provider Factory', () => {
     it('should pass when GOOGLE_GENERATIVE_AI_API_KEY is set', () => {
       process.env['GOOGLE_GENERATIVE_AI_API_KEY'] = 'test-key';
       expect(() => validateApiKey('google')).not.toThrow();
+    });
+
+    it('should pass when DEEPSEEK_API_KEY is set', () => {
+      process.env['DEEPSEEK_API_KEY'] = 'sk-test-key';
+      expect(() => validateApiKey('deepseek')).not.toThrow();
+    });
+
+    it('should pass when ZHIPU_API_KEY is set', () => {
+      process.env['ZHIPU_API_KEY'] = 'test-key';
+      expect(() => validateApiKey('zhipu')).not.toThrow();
     });
 
     it('should throw ConfigurationError when API key is missing', () => {
@@ -167,6 +195,20 @@ describe('Provider Factory', () => {
       const model = createModel('google');
       expect(model).toBeDefined();
       expect(model.modelId).toContain('gemini-2.5-flash');
+    });
+
+    it('should create a deepseek model instance', () => {
+      process.env['DEEPSEEK_API_KEY'] = 'sk-test-key';
+      const model = createModel('deepseek');
+      expect(model).toBeDefined();
+      expect(model.modelId).toContain('deepseek-chat');
+    });
+
+    it('should create a zhipu model instance', () => {
+      process.env['ZHIPU_API_KEY'] = 'test-key';
+      const model = createModel('zhipu');
+      expect(model).toBeDefined();
+      expect(model.modelId).toContain('glm-4-plus');
     });
   });
 });

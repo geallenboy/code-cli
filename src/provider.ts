@@ -2,11 +2,16 @@
  * AI 提供商工厂 (Provider Factory)
  *
  * 使用 Vercel AI SDK 的提供商适配器，根据配置创建对应的 LanguageModel 实例。
- * 支持 Anthropic、OpenAI、Google 三大提供商，通过统一接口屏蔽 API 差异。
+ * 支持 Anthropic、OpenAI、Google、DeepSeek、智谱(Zhipu) 五大提供商，
+ * 通过统一接口屏蔽 API 差异。
  *
  * 学习点：Claude Code 使用专用的 Anthropic SDK，与模型深度绑定。
  * Mini 版通过 Vercel AI SDK 实现多提供商支持——一行代码切换模型，
  * 理解"统一抽象层"如何降低供应商锁定风险。
+ *
+ * DeepSeek 和智谱的接入展示了 AI SDK 的扩展性：
+ * - DeepSeek: 官方 @ai-sdk/deepseek 包，一等公民支持
+ * - 智谱: 通过 @ai-sdk/openai-compatible 接入（OpenAI 兼容 API）
  *
  * 参考 Claude Code: src/services/api/claude.ts (3,419 行)
  * 简化：Vercel AI SDK 统一多提供商接口，无需手动处理各家 API 差异
@@ -15,6 +20,8 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModel } from 'ai';
 import type { ProviderConfig } from './types.js';
 import { ConfigurationError } from './errors.js';
@@ -36,6 +43,16 @@ export const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
     apiKeyEnv: 'GOOGLE_GENERATIVE_AI_API_KEY',
     contextWindow: 1_000_000,
   },
+  deepseek: {
+    defaultModel: 'deepseek-chat',
+    apiKeyEnv: 'DEEPSEEK_API_KEY',
+    contextWindow: 64_000,
+  },
+  zhipu: {
+    defaultModel: 'glm-4-plus',
+    apiKeyEnv: 'ZHIPU_API_KEY',
+    contextWindow: 128_000,
+  },
 };
 
 /**
@@ -45,7 +62,7 @@ export const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
  * 传入模型名即可得到统一的 LanguageModel 接口。
  * 调用方无需关心底层是 Anthropic Messages API 还是 OpenAI Chat Completions API。
  *
- * @param provider - 提供商名称 ('anthropic' | 'openai' | 'google')
+ * @param provider - 提供商名称 ('anthropic' | 'openai' | 'google' | 'deepseek' | 'zhipu')
  * @param model - 模型名称（可选，使用提供商默认值）
  * @returns 统一的 LanguageModel 实例
  * @throws ConfigurationError 如果提供商未知或 API Key 未设置
@@ -74,6 +91,21 @@ export function createModel(provider: string, model?: string): LanguageModel {
     case 'google': {
       const google = createGoogleGenerativeAI();
       return google(modelName);
+    }
+    case 'deepseek': {
+      const deepseek = createDeepSeek();
+      return deepseek(modelName);
+    }
+    case 'zhipu': {
+      // 智谱 API 兼容 OpenAI 格式，使用 openai-compatible 适配器
+      const zhipu = createOpenAICompatible({
+        name: 'zhipu',
+        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+        headers: {
+          Authorization: `Bearer ${process.env['ZHIPU_API_KEY'] ?? ''}`,
+        },
+      });
+      return zhipu(modelName);
     }
     default:
       throw new ConfigurationError(

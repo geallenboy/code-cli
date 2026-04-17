@@ -26,18 +26,20 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "ai": "^6.0.162",
     "@ai-sdk/anthropic": "^3.0.69",
-    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/deepseek": "^2.0.29",
     "@ai-sdk/google": "^3.0.63",
-    "zod": "^4.3.6",
-    "chalk": "^5.6.2"
+    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/openai-compatible": "^2.0.41",
+    "ai": "^6.0.162",
+    "chalk": "^5.6.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "typescript": "^6.0.2",
     "@types/node": "^25.6.0",
-    "vitest": "^4.1.4",
     "@vitest/coverage-v8": "^4.1.4",
-    "fast-check": "^4.6.0"
+    "fast-check": "^4.6.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
   }
 }
