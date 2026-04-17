@@ -23,6 +23,8 @@ import { getToolDefinitions, type ToolContext } from './tools/index.js';
 import { printAssistantText, printToolCall, printToolResult } from './ui.js';
 import type { AgentConfig, TokenUsage } from './types.js';
 import { RETRYABLE_STATUS_CODES } from './types.js';
+import { shouldCompact, compactConversation } from './compactor.js';
+import { saveSession } from './session.js';
 import * as readline from 'node:readline';
 
 /**
@@ -108,10 +110,12 @@ export class Agent {
   private _isProcessing = false;
   private readonly _config: AgentConfig;
   private readonly modelInstance: LanguageModel;
+  private readonly sessionId: string;
 
   constructor(config: AgentConfig) {
     this._config = config;
     this.modelInstance = createModel(config.provider, config.model);
+    this.sessionId = `session-${Date.now()}`;
   }
 
   /**
@@ -233,8 +237,20 @@ export class Agent {
           }));
           this._messages.push({ role: 'tool', content: resultParts });
         }
+
+        // Auto-compact if approaching context window limit
+        if (shouldCompact(this.totalInputTokens, this._config.effectiveContextWindow)) {
+          this._messages = await compactConversation(this._messages, this.modelInstance);
+        }
       }
     } finally {
+      // Auto-save session after each chat
+      saveSession(this.sessionId, {
+        id: this.sessionId,
+        startTime: new Date().toISOString(),
+        cwd: process.cwd(),
+        messages: this._messages,
+      });
       this._isProcessing = false;
     }
   }
@@ -249,10 +265,14 @@ export class Agent {
     this._messages = [];
   }
 
+  /** 恢复消息历史（用于会话恢复） */
+  restoreMessages(messages: ModelMessage[]): void {
+    this._messages = messages;
+  }
+
   /** 手动触发压缩 */
   async compact(): Promise<void> {
-    // TODO: Phase 2 — 实现上下文压缩
-    throw new Error('Not implemented');
+    this._messages = await compactConversation(this._messages, this.modelInstance);
   }
 
   /** 显示 token 使用量和成本 */
