@@ -13,7 +13,22 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import { readFileContent, grepSearch, listFiles } from './file-ops.js';
 import { writeFile, editFile } from './editor.js';
-import { executeShellCommand } from './shell.js';
+import { executeShellCommand, needsConfirmation } from './shell.js';
+
+/**
+ * 确认回调函数类型。
+ * 返回 true 表示用户允许执行，false 表示拒绝。
+ */
+export type ConfirmFn = (message: string) => Promise<boolean>;
+
+/**
+ * 工具上下文：运行时注入的配置（yolo 模式、确认回调、已确认命令白名单）
+ */
+export interface ToolContext {
+  yolo: boolean;
+  confirm: ConfirmFn;
+  confirmedCommands: Set<string>;
+}
 
 /**
  * read_file 工具定义
@@ -51,31 +66,6 @@ const writeFileTool = tool({
   execute: async ({ file_path, content }) => {
     try {
       return writeFile(file_path, content);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      return `Error: ${message}`;
-    }
-  },
-});
-
-/**
- * run_shell 工具定义
- *
- * 执行 Shell 命令，带超时和输出缓冲区限制。
- */
-const runShellTool = tool({
-  description:
-    'Execute a shell command and return its output. Use this for running tests, installing packages, git operations, etc. Commands have a 30-second default timeout.',
-  inputSchema: z.object({
-    command: z.string().describe('The shell command to execute'),
-    timeout: z
-      .number()
-      .optional()
-      .describe('Timeout in milliseconds (default: 30000)'),
-  }),
-  execute: async ({ command, timeout }) => {
-    try {
-      return truncateResult(executeShellCommand(command, timeout));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       return `Error: ${message}`;
@@ -155,11 +145,53 @@ const listFilesTool = tool({
 /**
  * 获取所有工具定义（传给 AI SDK 的 streamText）
  *
- * 返回一个 Record，key 为工具名，value 为 Tool 定义。
+ * 接受 ToolContext 注入确认逻辑。run_shell 工具在执行前会检查
+ * 危险命令，非 yolo 模式下需要用户确认。
  *
+ * @param ctx - 工具上下文（可选，默认无确认）
  * @returns 工具名到工具定义的映射
  */
-export function getToolDefinitions(): Record<string, Tool> {
+export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
+  /**
+   * run_shell 工具定义（带确认逻辑）
+   *
+   * 执行前检查 needsConfirmation()：
+   * - yolo 模式 → 直接执行
+   * - 已确认的命令 → 直接执行
+   * - 危险命令 → 调用 confirm 回调，用户拒绝则返回 denied 消息
+   */
+  const runShellTool = tool({
+    description:
+      'Execute a shell command and return its output. Use this for running tests, installing packages, git operations, etc. Commands have a 30-second default timeout.',
+    inputSchema: z.object({
+      command: z.string().describe('The shell command to execute'),
+      timeout: z
+        .number()
+        .optional()
+        .describe('Timeout in milliseconds (default: 30000)'),
+    }),
+    execute: async ({ command, timeout }) => {
+      try {
+        // Check if confirmation is needed
+        if (ctx && !ctx.yolo) {
+          const confirmMsg = needsConfirmation('run_shell', { command });
+          if (confirmMsg && !ctx.confirmedCommands.has(command)) {
+            const allowed = await ctx.confirm(confirmMsg);
+            if (!allowed) {
+              return 'User denied this action. Please try a different approach.';
+            }
+            // Add to whitelist so same command won't ask again
+            ctx.confirmedCommands.add(command);
+          }
+        }
+        return truncateResult(executeShellCommand(command, timeout));
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return `Error: ${message}`;
+      }
+    },
+  });
+
   return {
     read_file: readFileTool,
     write_file: writeFileTool,

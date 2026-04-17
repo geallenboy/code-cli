@@ -19,10 +19,11 @@ import {
 import type { LanguageModel } from 'ai';
 import { createModel } from './provider.js';
 import { buildSystemPrompt, type ToolDescription } from './prompt.js';
-import { getToolDefinitions } from './tools/index.js';
+import { getToolDefinitions, type ToolContext } from './tools/index.js';
 import { printAssistantText, printToolCall, printToolResult } from './ui.js';
 import type { AgentConfig, TokenUsage } from './types.js';
 import { RETRYABLE_STATUS_CODES } from './types.js';
+import * as readline from 'node:readline';
 
 /**
  * 判断错误是否可重试。
@@ -79,6 +80,21 @@ export async function withRetry<T>(
 }
 
 /**
+ * 在终端中提示用户确认操作。
+ * @param message - 确认提示消息
+ * @returns 用户是否确认（y/Y/回车 = 确认）
+ */
+async function askConfirmation(message: string): Promise<boolean> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(`${message}\nAllow? [y/N] `, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
+/**
  * Agent 核心类
  *
  * 管理对话历史、token 追踪和 Agent Loop 执行。
@@ -118,7 +134,12 @@ export class Agent {
       this._messages.push({ role: 'user', content: userMessage });
 
       // Build system prompt with tool descriptions
-      const tools = getToolDefinitions();
+      const toolCtx: ToolContext = {
+        yolo: this._config.yolo,
+        confirm: askConfirmation,
+        confirmedCommands: this._confirmedCommands,
+      };
+      const tools = getToolDefinitions(toolCtx);
       const toolDescriptions: ToolDescription[] = Object.entries(tools).map(
         ([name, t]) => ({
           name,
