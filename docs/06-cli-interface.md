@@ -116,3 +116,63 @@ Mini 版用 `readline + chalk`，约 100 行代码。当你想加权限确认对
 ```bash
 pnpm test  # ✅ 108 tests passed
 ```
+
+## 本地手动测试
+
+### 前置条件
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入至少一个 API Key
+pnpm run build
+```
+
+### 测试参数解析
+
+```bash
+# 默认提供商 (anthropic)
+node dist/index.js "hello"
+
+# 指定提供商
+node dist/index.js --provider deepseek "你好"
+
+# 指定模型
+node dist/index.js --provider openai --model gpt-4o-mini "hello"
+
+# 缺少 API Key 时的错误提示
+ANTHROPIC_API_KEY= node dist/index.js "hello"
+# 预期：Error: API key not set. Please set the ANTHROPIC_API_KEY...
+
+# 未知提供商
+node dist/index.js --provider unknown "hello"
+# 预期：Error: Unknown provider: "unknown". Supported providers: ...
+```
+
+### 测试 REPL 模式
+
+```bash
+node dist/index.js --provider deepseek
+# 预期输出：
+#   Provider: deepseek | Model: deepseek-chat
+#   Mini Claude Code — type your message, /clear, /cost, or Ctrl+C to exit
+#
+#   >
+
+# 在 > 提示符后测试：
+> 你好                    # 普通对话
+> /clear                  # 清空历史
+> /cost                   # 显示 token 用量
+> /compact                # 触发压缩（Phase 2 实现前会提示 not implemented）
+> /unknown                # 未知命令提示
+> （空回车）              # 跳过，继续等待输入
+> Ctrl+C                  # 第一次：提示再按一次退出
+> Ctrl+C                  # 第二次：退出
+```
+
+### 测试一次性模式
+
+```bash
+# 执行后自动退出
+node dist/index.js --provider deepseek "1+1等于几"
+# 预期：模型回答后程序退出，不进入 REPL
+```

@@ -80,3 +80,74 @@ Mini 版只实现了核心的唯一性约束 + 精确匹配。当你发现模型
 ```bash
 pnpm test  # ✅ 124 tests passed
 ```
+
+## 本地手动测试
+
+### 不需要 API Key 的测试（直接调用函数）
+
+```bash
+pnpm run build
+
+# 准备测试文件
+echo 'const x = 1;
+const y = 2;
+const z = 3;' > /tmp/test-edit.ts
+
+# 测试 1：唯一匹配替换
+node -e "
+  import('./dist/tools/editor.js').then(m => {
+    console.log(m.editFile('/tmp/test-edit.ts', 'const y = 2;', 'const y = 42;'));
+  });
+"
+# 预期：File edited: /tmp/test-edit.ts (replaced 1 line with 1 line)
+
+# 验证文件内容
+cat /tmp/test-edit.ts
+# 预期：const y = 42;
+
+# 测试 2：old_string 未找到
+node -e "
+  import('./dist/tools/editor.js').then(m => {
+    console.log(m.editFile('/tmp/test-edit.ts', 'const w = 99;', 'replaced'));
+  });
+"
+# 预期：Error: old_string not found...
+
+# 测试 3：多次匹配
+echo 'foo
+bar
+foo' > /tmp/test-dup.ts
+node -e "
+  import('./dist/tools/editor.js').then(m => {
+    console.log(m.editFile('/tmp/test-dup.ts', 'foo', 'baz'));
+  });
+"
+# 预期：Error: old_string found 2 times...
+```
+
+### 需要 API Key 的端到端测试
+
+```bash
+# 让 Agent 使用 edit_file 修改文件
+echo 'function greet() {
+  return "hello";
+}' > /tmp/test-agent-edit.ts
+
+node dist/index.js --provider deepseek "读取 /tmp/test-agent-edit.ts，然后把 hello 改成 hello world"
+# 预期：
+#   🔧 read_file {"file_path":"/tmp/test-agent-edit.ts"}
+#   ✓ read_file: ...
+#   🔧 edit_file {"file_path":"/tmp/test-agent-edit.ts","old_string":"\"hello\"","new_string":"\"hello world\""}
+#   ✓ edit_file: File edited...
+#   模型确认修改完成
+
+# 验证
+cat /tmp/test-agent-edit.ts
+# 预期：return "hello world";
+```
+
+### 清理
+
+```bash
+rm -f /tmp/test-edit.ts /tmp/test-dup.ts /tmp/test-agent-edit.ts
+```
