@@ -9,6 +9,9 @@
  * 简化：直接调用 CLI 模块，无 React/Ink 渲染层
  */
 
+// 最早加载 .env 文件，确保后续所有模块都能读到环境变量
+import 'dotenv/config';
+
 import chalk from 'chalk';
 import { parseArgs, runRepl } from './cli.js';
 import { Agent } from './agent.js';
@@ -35,7 +38,7 @@ async function main(): Promise<void> {
 
   // Create Agent
   const agent = new Agent({
-    provider: args.provider as 'anthropic' | 'openai' | 'google',
+    provider: args.provider as 'anthropic' | 'openai' | 'google' | 'deepseek' | 'zhipu',
     model,
     yolo: args.yolo,
     effectiveContextWindow: contextWindow,
