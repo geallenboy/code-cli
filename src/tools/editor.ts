@@ -8,6 +8,9 @@
  * 简化：核心的唯一性约束 + 精确匹配
  */
 
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+
 /**
  * 执行 search-and-replace 编辑
  *
@@ -31,11 +34,23 @@ export function editFile(
 
 /**
  * 创建或覆写文件（自动创建缺失的父目录）
+ *
+ * 写入成功时返回包含文件路径和行数的成功消息。
+ * 写入失败时返回错误消息字符串（不抛出异常）。
+ *
  * @param filePath - 文件路径
  * @param content - 文件内容
  * @returns 操作结果描述
  */
-export function writeFile(_filePath: string, _content: string): string {
-  // TODO: Phase 1 — 实现文件写入
-  return '';
+export function writeFile(filePath: string, content: string): string {
+  try {
+    const dir = dirname(filePath);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, content, 'utf-8');
+    const lines = content.split('\n').length;
+    return `File written: ${filePath} (${lines} lines)`;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `Error writing file ${filePath}: ${message}`;
+  }
 }

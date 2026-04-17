@@ -8,6 +8,8 @@
  * 简化：正则检测 + 用户确认（2 层防御）
  */
 
+import { execSync } from 'node:child_process';
+
 /** 危险命令模式列表 */
 export const DANGEROUS_PATTERNS: RegExp[] = [
   /\brm\s/,
@@ -47,11 +49,51 @@ export function needsConfirmation(
 
 /**
  * 执行 Shell 命令（30s 超时，5MB 输出上限）
+ *
+ * 成功时返回 stdout 内容。
+ * 失败时返回包含 exit code、stdout 和 stderr 的错误信息。
+ * 超时时返回超时消息和已获取的部分输出。
+ * 所有情况均返回字符串，不抛出异常。
+ *
  * @param command - 要执行的命令
  * @param timeout - 超时时间（毫秒），默认 30000
- * @returns 命令输出
+ * @returns 命令输出或错误信息
  */
-export function executeShellCommand(_command: string, _timeout = 30_000): string {
-  // TODO: Phase 1 — 实现 Shell 命令执行
-  return '';
+export function executeShellCommand(command: string, timeout = 30_000): string {
+  try {
+    const result = execSync(command, {
+      timeout,
+      maxBuffer: 5 * 1024 * 1024,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return result;
+  } catch (error: unknown) {
+    // execSync throws on non-zero exit, timeout, or other failures
+    if (error instanceof Error && 'status' in error) {
+      const execError = error as Error & {
+        status: number | null;
+        signal: string | null;
+        code: string | undefined;
+        stdout: string | null;
+        stderr: string | null;
+      };
+
+      // Timeout case: ETIMEDOUT code or SIGTERM signal
+      if (execError.code === 'ETIMEDOUT' || execError.signal === 'SIGTERM') {
+        const stdout = execError.stdout ?? '';
+        return `Command timed out after ${timeout}ms\n\nPartial output:\n${stdout}`;
+      }
+
+      // Non-zero exit code
+      const code = execError.status ?? 1;
+      const stdout = execError.stdout ?? '';
+      const stderr = execError.stderr ?? '';
+      return `Exit code: ${code}\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`;
+    }
+
+    // Unexpected error
+    const message = error instanceof Error ? error.message : String(error);
+    return `Error executing command: ${message}`;
+  }
 }
