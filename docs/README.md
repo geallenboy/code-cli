@@ -45,6 +45,11 @@
 ### Phase 2: 核心能力增强
 
 - [Task 8: Search-and-Replace 编辑策略](./08-edit-strategy.md)
+- [Task 9: 文件搜索与浏览工具](./09-file-search.md)
+- [Task 10: 危险命令检测与用户确认](./10-dangerous-commands.md)
+- [Task 11: 上下文压缩](./11-context-compaction.md)
+- [Task 12: 会话持久化](./12-session-persistence.md)
+- [Task 13: Phase 2 检查点](./13-phase2-checkpoint.md)
 
 ## 项目结构
 
