@@ -51,6 +51,10 @@
 - [Task 12: 会话持久化](./12-session-persistence.md)
 - [Task 13: Phase 2 检查点](./13-phase2-checkpoint.md)
 
+### Phase 3: 高级特性与质量保障
+
+- [Task 14-19: Phase 3 总结](./14-19-phase3-summary.md)
+
 ## 项目结构
 
 ```
