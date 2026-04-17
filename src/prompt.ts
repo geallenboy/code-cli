@@ -135,22 +135,30 @@ export function getGitContext(): string {
 }
 
 /**
- * 从当前目录向上遍历加载 CLAUDE.md 文件。
- * 祖先目录的内容排在子目录之前。
+ * 从当前目录向上遍历加载所有 CLAUDE.md 文件。
+ * 祖先目录的内容排在子目录之前（unshift 策略）。
+ * 读取失败的文件会被跳过。
  *
- * Phase 1: 仅加载当前目录的 CLAUDE.md
- * Phase 3: 完整的层级遍历实现
- *
- * @returns CLAUDE.md 内容，不存在时返回空字符串
+ * @returns 所有 CLAUDE.md 内容拼接，不存在时返回空字符串
  */
 export function loadClaudeMd(): string {
-  try {
-    const claudePath = resolve(process.cwd(), 'CLAUDE.md');
-    if (existsSync(claudePath)) {
-      return readFileSync(claudePath, 'utf-8');
+  const parts: string[] = [];
+  let dir = process.cwd();
+
+  while (true) {
+    try {
+      const claudePath = resolve(dir, 'CLAUDE.md');
+      if (existsSync(claudePath)) {
+        parts.unshift(readFileSync(claudePath, 'utf-8'));
+      }
+    } catch {
+      // Skip unreadable files
     }
-    return '';
-  } catch {
-    return '';
+
+    const parent = dirname(dir);
+    if (parent === dir) break; // Reached filesystem root
+    dir = parent;
   }
+
+  return parts.join('\n\n---\n\n');
 }

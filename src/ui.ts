@@ -65,5 +65,14 @@ export function printAssistantText(text: string): void {
  * @param outputTokens - 输出 token 数
  */
 export function printCost(inputTokens: number, outputTokens: number): void {
-  console.log(chalk.cyan(`\nTokens: ${inputTokens} input, ${outputTokens} output`));
+  const total = inputTokens + outputTokens;
+  // Rough cost estimate (Anthropic Sonnet pricing as baseline)
+  const inputCost = (inputTokens / 1_000_000) * 3;    // $3/M input tokens
+  const outputCost = (outputTokens / 1_000_000) * 15;  // $15/M output tokens
+  const totalCost = inputCost + outputCost;
+
+  console.log(chalk.cyan(
+    `\nToken usage: ${inputTokens.toLocaleString()} input + ${outputTokens.toLocaleString()} output = ${total.toLocaleString()} total`,
+  ));
+  console.log(chalk.cyan(`Estimated cost: $${totalCost.toFixed(4)} (based on Anthropic Sonnet pricing)`));
 }

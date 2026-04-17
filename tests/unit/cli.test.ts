@@ -8,7 +8,7 @@
  * - 位置参数（一次性模式 prompt）
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { parseArgs } from '../../src/cli.js';
 
 describe('parseArgs', () => {
