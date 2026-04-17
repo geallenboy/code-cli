@@ -80,3 +80,119 @@ describe('readFileContent', () => {
     expect(result).toBe('1 | only line');
   });
 });
+
+import { grepSearch, listFiles } from '../../src/tools/file-ops.js';
+
+describe('grepSearch', () => {
+  beforeEach(() => {
+    mkdirSync(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  });
+
+  it('should find matching lines in files', () => {
+    writeFileSync(join(TEST_DIR, 'a.ts'), 'const foo = 1;\nconst bar = 2;\n');
+    writeFileSync(join(TEST_DIR, 'b.ts'), 'const baz = 3;\nconst foo = 4;\n');
+
+    const result = grepSearch('foo', TEST_DIR);
+    expect(result).toContain('foo');
+    expect(result).toContain('a.ts');
+    expect(result).toContain('b.ts');
+  });
+
+  it('should return "No matches found" when nothing matches', () => {
+    writeFileSync(join(TEST_DIR, 'c.ts'), 'hello world\n');
+
+    const result = grepSearch('zzzznotfound', TEST_DIR);
+    expect(result).toContain('No matches found');
+  });
+
+  it('should return error for non-existent directory', () => {
+    const result = grepSearch('test', '/tmp/nonexistent-dir-12345');
+    expect(result).toContain('Error');
+  });
+
+  it('should include line numbers in results', () => {
+    writeFileSync(join(TEST_DIR, 'd.ts'), 'line1\ntarget\nline3\n');
+
+    const result = grepSearch('target', TEST_DIR);
+    expect(result).toMatch(/:2:/); // line 2
+  });
+
+  it('should filter by include pattern', () => {
+    writeFileSync(join(TEST_DIR, 'code.ts'), 'findme\n');
+    writeFileSync(join(TEST_DIR, 'readme.md'), 'findme\n');
+
+    const result = grepSearch('findme', TEST_DIR, '*.ts');
+    expect(result).toContain('code.ts');
+    expect(result).not.toContain('readme.md');
+  });
+});
+
+describe('listFiles', () => {
+  beforeEach(() => {
+    mkdirSync(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  });
+
+  it('should list files in a directory', () => {
+    writeFileSync(join(TEST_DIR, 'a.ts'), '');
+    writeFileSync(join(TEST_DIR, 'b.ts'), '');
+    writeFileSync(join(TEST_DIR, 'c.md'), '');
+
+    const result = listFiles('.', TEST_DIR);
+    expect(result).toContain('a.ts');
+    expect(result).toContain('b.ts');
+    expect(result).toContain('c.md');
+  });
+
+  it('should filter by pattern', () => {
+    writeFileSync(join(TEST_DIR, 'a.ts'), '');
+    writeFileSync(join(TEST_DIR, 'b.ts'), '');
+    writeFileSync(join(TEST_DIR, 'c.md'), '');
+
+    const result = listFiles('*.ts', TEST_DIR);
+    expect(result).toContain('a.ts');
+    expect(result).toContain('b.ts');
+    expect(result).not.toContain('c.md');
+  });
+
+  it('should list files in subdirectories', () => {
+    mkdirSync(join(TEST_DIR, 'sub'), { recursive: true });
+    writeFileSync(join(TEST_DIR, 'sub', 'nested.ts'), '');
+
+    const result = listFiles('.', TEST_DIR);
+    expect(result).toContain('nested.ts');
+  });
+
+  it('should exclude node_modules and .git', () => {
+    mkdirSync(join(TEST_DIR, 'node_modules'), { recursive: true });
+    mkdirSync(join(TEST_DIR, '.git'), { recursive: true });
+    writeFileSync(join(TEST_DIR, 'node_modules', 'pkg.js'), '');
+    writeFileSync(join(TEST_DIR, '.git', 'config'), '');
+    writeFileSync(join(TEST_DIR, 'src.ts'), '');
+
+    const result = listFiles('.', TEST_DIR);
+    expect(result).toContain('src.ts');
+    expect(result).not.toContain('pkg.js');
+    expect(result).not.toContain('config');
+  });
+
+  it('should return "No files found" for empty directory', () => {
+    const emptyDir = join(TEST_DIR, 'empty');
+    mkdirSync(emptyDir, { recursive: true });
+
+    const result = listFiles('.', emptyDir);
+    expect(result).toContain('No files found');
+  });
+
+  it('should return error for non-existent directory', () => {
+    const result = listFiles('.', '/tmp/nonexistent-dir-12345');
+    expect(result).toContain('Error');
+  });
+});

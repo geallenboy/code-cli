@@ -11,7 +11,7 @@
 
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
-import { readFileContent } from './file-ops.js';
+import { readFileContent, grepSearch, listFiles } from './file-ops.js';
 import { writeFile, editFile } from './editor.js';
 import { executeShellCommand } from './shell.js';
 
@@ -108,6 +108,51 @@ const editFileTool = tool({
 });
 
 /**
+ * grep_search 工具定义
+ *
+ * 递归搜索文件内容，返回匹配行（含文件路径和行号）。
+ */
+const grepSearchTool = tool({
+  description:
+    'Search for a pattern in files recursively. Returns matching lines with file paths and line numbers. Use this to find code references, function definitions, or specific strings across the codebase.',
+  inputSchema: z.object({
+    pattern: z.string().describe('The search pattern (regex supported)'),
+    search_path: z.string().optional().describe('Directory to search in (default: current directory)'),
+    include: z.string().optional().describe('File pattern filter, e.g. "*.ts" or "*.py"'),
+  }),
+  execute: async ({ pattern, search_path, include }) => {
+    try {
+      return truncateResult(grepSearch(pattern, search_path, include));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error: ${message}`;
+    }
+  },
+});
+
+/**
+ * list_files 工具定义
+ *
+ * 列出目录中的文件，支持模式过滤。
+ */
+const listFilesTool = tool({
+  description:
+    'List files in a directory, optionally filtered by pattern. Excludes node_modules, .git, dist, and other common build directories. Use this to understand project structure.',
+  inputSchema: z.object({
+    pattern: z.string().describe('File pattern to match, e.g. "*.ts", "*.py", or "." for all files'),
+    base_path: z.string().optional().describe('Directory to list files from (default: current directory)'),
+  }),
+  execute: async ({ pattern, base_path }) => {
+    try {
+      return truncateResult(listFiles(pattern, base_path));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error: ${message}`;
+    }
+  },
+});
+
+/**
  * 获取所有工具定义（传给 AI SDK 的 streamText）
  *
  * 返回一个 Record，key 为工具名，value 为 Tool 定义。
@@ -119,6 +164,8 @@ export function getToolDefinitions(): Record<string, Tool> {
     read_file: readFileTool,
     write_file: writeFileTool,
     edit_file: editFileTool,
+    grep_search: grepSearchTool,
+    list_files: listFilesTool,
     run_shell: runShellTool,
   };
 }
