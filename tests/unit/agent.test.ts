@@ -245,6 +245,36 @@ describe('Agent', () => {
       buildSystemPrompt: vi.fn(() => 'You are a test assistant.'),
     }));
 
+    // Mock session to avoid file system writes
+    vi.doMock('../../src/session.js', () => ({
+      saveSession: vi.fn(),
+    }));
+
+    // Mock normalizer (pass-through)
+    vi.doMock('../../src/normalizer.js', () => ({
+      normalizeMessages: (msgs: unknown[]) => msgs,
+    }));
+
+    // Mock compactor modules (no-op)
+    vi.doMock('../../src/compactor/snip.js', () => ({
+      snipCompact: (msgs: unknown[]) => ({ messages: msgs, tokensFreed: 0 }),
+    }));
+    vi.doMock('../../src/compactor/micro.js', () => ({
+      microCompact: (msgs: unknown[]) => ({ messages: msgs, tokensFreed: 0 }),
+    }));
+    vi.doMock('../../src/compactor/auto.js', () => ({
+      shouldAutoCompact: () => false,
+      autoCompact: vi.fn().mockResolvedValue({ messages: [], failed: false }),
+    }));
+    vi.doMock('../../src/compactor/index.js', () => ({
+      snipCompact: (msgs: unknown[]) => ({ messages: msgs, tokensFreed: 0 }),
+      microCompact: (msgs: unknown[]) => ({ messages: msgs, tokensFreed: 0 }),
+      shouldAutoCompact: () => false,
+      autoCompact: vi.fn().mockResolvedValue({ messages: [], failed: false }),
+      shouldCompact: () => false,
+      compactConversation: vi.fn().mockResolvedValue({ messages: [], failed: false }),
+    }));
+
     // Mock the ui module to capture output
     const printedText: string[] = [];
     const printedToolCalls: Array<{ name: string; input: Record<string, unknown> }> = [];

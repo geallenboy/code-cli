@@ -24,6 +24,7 @@ import { RETRYABLE_STATUS_CODES } from './types.js';
 import { snipCompact } from './compactor/snip.js';
 import { microCompact } from './compactor/micro.js';
 import { shouldAutoCompact, autoCompact } from './compactor/auto.js';
+import { normalizeMessages } from './normalizer.js';
 
 /**
  * 判断错误是否可重试。
@@ -77,6 +78,38 @@ export async function withRetry<T>(
     }
   }
   throw new Error('Unreachable');
+}
+
+/**
+ * 检测 Prompt-Too-Long (PTL) 错误。
+ * PTL 错误通常是 HTTP 400，消息中包含 token 限制相关关键词。
+ *
+ * @param error - 捕获的错误
+ * @returns 是否为 PTL 错误
+ */
+export function isPTLError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const msg = 'message' in error ? String((error as { message: string }).message) : '';
+  const status = 'status' in error ? (error as { status: number }).status : 0;
+  return (
+    status === 400 &&
+    (msg.includes('prompt is too long') ||
+      msg.includes('too many tokens') ||
+      msg.includes('context_length_exceeded'))
+  );
+}
+
+/**
+ * 检测 Max-Output-Tokens (MOT) 错误。
+ * MOT 错误表示模型输出被截断。
+ *
+ * @param error - 捕获的错误
+ * @returns 是否为 MOT 错误
+ */
+export function isMOTError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const msg = 'message' in error ? String((error as { message: string }).message) : '';
+  return msg.includes('max_output_tokens') || msg.includes('max_tokens');
 }
 
 /** query() 的输入参数 */
@@ -135,22 +168,92 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
       return { reason: 'max_turns' as const };
     }
 
-    // API call with retry
-    const result = await withRetry(
-      () =>
-        Promise.resolve(
-          streamText({
-            model: params.model,
-            system: systemPrompt,
-            messages: state.messages,
-            tools,
-            stopWhen: stepCountIs(1),
-            abortSignal: params.abortSignal,
-          }),
-        ),
-      3,
-      params.abortSignal,
-    );
+    // Normalize messages before API call (Task 23)
+    state.messages = normalizeMessages(state.messages);
+
+    // API call with retry + error recovery (Task 22)
+    let result;
+    try {
+      result = await withRetry(
+        () =>
+          Promise.resolve(
+            streamText({
+              model: params.model,
+              system: systemPrompt,
+              messages: state.messages,
+              tools,
+              stopWhen: stepCountIs(1),
+              abortSignal: params.abortSignal,
+              maxOutputTokens: state.maxOutputTokens,
+            }),
+          ),
+        3,
+        params.abortSignal,
+      );
+    } catch (error) {
+      // === Error Recovery: PTL and MOT Continue Sites ===
+
+      // Detect PTL error → force autocompact and retry
+      if (isPTLError(error)) {
+        const autoResult = await autoCompact(
+          state.messages,
+          params.model,
+          state.autocompactFailures,
+        );
+        if (autoResult.failed) {
+          state.autocompactFailures++;
+          // All recovery exhausted — yield error and terminate
+          yield {
+            type: 'error' as const,
+            error: new Error('Context too long: compression failed'),
+            recoverable: false,
+          };
+          return { reason: 'error' as const };
+        }
+        state.messages = autoResult.messages;
+        state.autocompactFailures = 0;
+        yield { type: 'compact' as const, level: 'auto' as const, tokensFreed: 0 };
+        state = { ...state, transition: 'ptl_recovery' };
+        continue; // Retry the API call
+      }
+
+      // Detect MOT error
+      if (isMOTError(error)) {
+        // MOT Escalation: increase max tokens
+        if (state.maxOutputTokens < 16384) {
+          state = { ...state, maxOutputTokens: 16384, transition: 'mot_escalation' };
+          continue; // Retry with higher limit
+        }
+        // MOT Continuation: inject continuation prompt
+        if (state.motRecoveryCount < 3) {
+          state.messages.push({
+            role: 'user',
+            content: 'Output token limit reached. Continue from where you left off.',
+          });
+          state = {
+            ...state,
+            motRecoveryCount: state.motRecoveryCount + 1,
+            transition: 'mot_continuation',
+          };
+          continue;
+        }
+        // All MOT recovery exhausted
+        yield {
+          type: 'error' as const,
+          error: new Error('Output too long: max recovery attempts reached'),
+          recoverable: false,
+        };
+        return { reason: 'error' as const };
+      }
+
+      // Non-recoverable error — yield and terminate
+      yield {
+        type: 'error' as const,
+        error: error instanceof Error ? error : new Error(String(error)),
+        recoverable: false,
+      };
+      return { reason: 'error' as const };
+    }
 
     // Stream text — yield each chunk as StreamEvent
     for await (const textPart of result.textStream) {
@@ -197,7 +300,11 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
 
     // Yield tool events
     for (const tc of toolCalls) {
-      yield { type: 'tool_call' as const, toolName: tc.toolName, input: tc.input as Record<string, unknown> };
+      yield {
+        type: 'tool_call' as const,
+        toolName: tc.toolName,
+        input: tc.input as Record<string, unknown>,
+      };
     }
     for (const tr of toolResults) {
       const outputStr = typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output);
@@ -210,7 +317,10 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
         type: 'tool-result' as const,
         toolCallId: tr.toolCallId,
         toolName: tr.toolName,
-        output: { type: 'text' as const, value: typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output) },
+        output: {
+          type: 'text' as const,
+          value: typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output),
+        },
       }));
       state.messages.push({ role: 'tool', content: resultParts });
     }
@@ -221,19 +331,31 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
     const snipResult = snipCompact(state.messages);
     state.messages = snipResult.messages;
     if (snipResult.tokensFreed > 0) {
-      yield { type: 'compact' as const, level: 'snip' as const, tokensFreed: snipResult.tokensFreed };
+      yield {
+        type: 'compact' as const,
+        level: 'snip' as const,
+        tokensFreed: snipResult.tokensFreed,
+      };
     }
 
     // 2. Micro — zero cost
     const microResult = microCompact(state.messages);
     state.messages = microResult.messages;
     if (microResult.tokensFreed > 0) {
-      yield { type: 'compact' as const, level: 'micro' as const, tokensFreed: microResult.tokensFreed };
+      yield {
+        type: 'compact' as const,
+        level: 'micro' as const,
+        tokensFreed: microResult.tokensFreed,
+      };
     }
 
     // 3. Auto — full cost (only if needed)
     if (shouldAutoCompact(usage?.inputTokens ?? 0, params.effectiveContextWindow)) {
-      const autoResult = await autoCompact(state.messages, params.model, state.autocompactFailures);
+      const autoResult = await autoCompact(
+        state.messages,
+        params.model,
+        state.autocompactFailures,
+      );
       if (autoResult.failed) {
         state.autocompactFailures++;
       } else {
