@@ -55,6 +55,11 @@
 
 - [Task 14-19: Phase 3 总结](./14-19-phase3-summary.md)
 
+### Phase 4: 架构升级 (v2)
+
+- [Task 20: 双层架构重构](./20-dual-layer-architecture.md)
+- [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
+
 ## 项目结构
 
 ```

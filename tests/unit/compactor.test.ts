@@ -1,7 +1,8 @@
 /**
- * 上下文压缩器单元测试
+ * Auto 压缩器单元测试
  *
- * 测试 shouldCompact 阈值判断和 compactConversation 压缩逻辑。
+ * 测试 shouldAutoCompact 阈值判断、autoCompact 压缩逻辑和断路器。
+ * 更新：使用新的 src/compactor/ 目录结构和 80% 阈值。
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -20,44 +21,56 @@ vi.mock('ai', async (importOriginal) => {
   };
 });
 
-import { shouldCompact, compactConversation } from '../../src/compactor.js';
+import { shouldAutoCompact, autoCompact } from '../../src/compactor/auto.js';
+// Also test backward-compat re-exports
+import { shouldCompact, compactConversation } from '../../src/compactor/index.js';
 
-describe('shouldCompact', () => {
-  it('should return true when tokens exceed 85% of window', () => {
-    expect(shouldCompact(86000, 100000)).toBe(true);
+describe('shouldAutoCompact', () => {
+  it('should return true when tokens exceed 80% of window', () => {
+    expect(shouldAutoCompact(81000, 100000)).toBe(true);
   });
 
-  it('should return false when tokens are below 85% of window', () => {
-    expect(shouldCompact(80000, 100000)).toBe(false);
+  it('should return false when tokens are below 80% of window', () => {
+    expect(shouldAutoCompact(79000, 100000)).toBe(false);
   });
 
-  it('should return false when tokens are exactly at 85% threshold', () => {
-    expect(shouldCompact(85000, 100000)).toBe(false);
+  it('should return false when tokens are exactly at 80% threshold', () => {
+    expect(shouldAutoCompact(80000, 100000)).toBe(false);
   });
 
   it('should return false when tokens are 0', () => {
-    expect(shouldCompact(0, 100000)).toBe(false);
+    expect(shouldAutoCompact(0, 100000)).toBe(false);
   });
 
   it('should return true when window is 0 and tokens > 0', () => {
-    expect(shouldCompact(1, 0)).toBe(true);
+    expect(shouldAutoCompact(1, 0)).toBe(true);
   });
 
   it('should return false when both are 0', () => {
-    expect(shouldCompact(0, 0)).toBe(false);
+    expect(shouldAutoCompact(0, 0)).toBe(false);
   });
 
   it('should handle large token counts', () => {
-    expect(shouldCompact(170001, 200000)).toBe(true);
-    expect(shouldCompact(169999, 200000)).toBe(false);
+    expect(shouldAutoCompact(160001, 200000)).toBe(true);
+    expect(shouldAutoCompact(159999, 200000)).toBe(false);
   });
 
-  it('should return true just above 85% boundary', () => {
-    expect(shouldCompact(85001, 100000)).toBe(true);
+  it('should return true just above 80% boundary', () => {
+    expect(shouldAutoCompact(80001, 100000)).toBe(true);
   });
 });
 
-describe('compactConversation', () => {
+describe('backward-compat re-exports', () => {
+  it('shouldCompact should be the same as shouldAutoCompact', () => {
+    expect(shouldCompact).toBe(shouldAutoCompact);
+  });
+
+  it('compactConversation should be the same as autoCompact', () => {
+    expect(compactConversation).toBe(autoCompact);
+  });
+});
+
+describe('autoCompact', () => {
   const mockModel = {} as LanguageModel;
 
   beforeEach(() => {
@@ -70,8 +83,9 @@ describe('compactConversation', () => {
       { role: 'assistant', content: 'Hi there!' },
     ];
 
-    const result = await compactConversation(messages, mockModel);
-    expect(result).toBe(messages);
+    const result = await autoCompact(messages, mockModel, 0);
+    expect(result.messages).toBe(messages);
+    expect(result.failed).toBe(false);
   });
 
   it('should skip compression for exactly 3 messages', async () => {
@@ -81,8 +95,9 @@ describe('compactConversation', () => {
       { role: 'user', content: 'How are you?' },
     ];
 
-    const result = await compactConversation(messages, mockModel);
-    expect(result).toBe(messages);
+    const result = await autoCompact(messages, mockModel, 0);
+    expect(result.messages).toBe(messages);
+    expect(result.failed).toBe(false);
   });
 
   it('should compress 4+ messages into summary pair + last user message', async () => {
@@ -98,18 +113,17 @@ describe('compactConversation', () => {
       { role: 'user', content: 'Show me an example' },
     ];
 
-    const result = await compactConversation(messages, mockModel);
+    const result = await autoCompact(messages, mockModel, 0);
 
-    expect(result.length).toBe(3);
-    expect(result[0].role).toBe('user');
-    expect(result[0].content).toContain('[Previous conversation summary]');
-    expect(result[1].role).toBe('assistant');
-    expect(result[1].content).toContain('continue from where we left off');
-    expect(result[2].role).toBe('user');
-    expect(result[2].content).toBe('Show me an example');
+    expect(result.failed).toBe(false);
+    // Should contain summary pair + recent exchanges + last user message
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toContain('[Previous conversation summary]');
+    expect(result.messages[1].role).toBe('assistant');
+    expect(result.messages[1].content).toContain('continue from where we left off');
   });
 
-  it('should return original messages on generateText failure (graceful degradation)', async () => {
+  it('should return failed: true on generateText failure (graceful degradation)', async () => {
     mockGenerateText.mockRejectedValue(new Error('API error'));
 
     const messages: ModelMessage[] = [
@@ -120,27 +134,43 @@ describe('compactConversation', () => {
       { role: 'user', content: 'Follow up' },
     ];
 
-    const result = await compactConversation(messages, mockModel);
-    expect(result).toBe(messages);
+    const result = await autoCompact(messages, mockModel, 0);
+    expect(result.messages).toBe(messages);
+    expect(result.failed).toBe(true);
   });
 
-  it('should preserve the last user message in compressed output', async () => {
-    mockGenerateText.mockResolvedValue({
-      text: 'Summary of the conversation.',
-    });
-
-    const lastUserContent = 'This is the very last user message';
+  it('should trigger circuit breaker after 3 consecutive failures', async () => {
     const messages: ModelMessage[] = [
-      { role: 'user', content: 'First' },
-      { role: 'assistant', content: 'Response 1' },
-      { role: 'user', content: 'Second' },
-      { role: 'assistant', content: 'Response 2' },
-      { role: 'user', content: lastUserContent },
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'Hi!' },
+      { role: 'user', content: 'Question' },
+      { role: 'assistant', content: 'Answer' },
+      { role: 'user', content: 'Follow up' },
     ];
 
-    const result = await compactConversation(messages, mockModel);
+    // 3 consecutive failures → circuit breaker
+    const result = await autoCompact(messages, mockModel, 3);
+    expect(result.messages).toBe(messages);
+    expect(result.failed).toBe(true);
+    // generateText should NOT have been called
+    expect(mockGenerateText).not.toHaveBeenCalled();
+  });
 
-    expect(result[result.length - 1].role).toBe('user');
-    expect(result[result.length - 1].content).toBe(lastUserContent);
+  it('should not trigger circuit breaker with fewer than 3 failures', async () => {
+    mockGenerateText.mockResolvedValue({
+      text: 'Summary.',
+    });
+
+    const messages: ModelMessage[] = [
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'Hi!' },
+      { role: 'user', content: 'Question' },
+      { role: 'assistant', content: 'Answer' },
+      { role: 'user', content: 'Follow up' },
+    ];
+
+    const result = await autoCompact(messages, mockModel, 2);
+    expect(result.failed).toBe(false);
+    expect(mockGenerateText).toHaveBeenCalled();
   });
 });
