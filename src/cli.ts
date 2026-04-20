@@ -12,8 +12,10 @@ import * as readline from 'node:readline';
 import chalk from 'chalk';
 import type { Agent } from './agent.js';
 import type { CliArgs } from './types.js';
-import { printCost } from './ui.js';
+import { printCost, printTokenBar } from './ui.js';
 import { createMemory, listMemories } from './memory/index.js';
+import { createPlanModeState, enterPlanMode } from './plan-mode.js';
+import { resetPromptCache } from './prompt.js';
 
 /**
  * 解析命令行参数。
@@ -85,6 +87,7 @@ export async function runRepl(agent: Agent): Promise<void> {
   });
 
   let ctrlCCount = 0;
+  let planState = createPlanModeState();
 
   // Handle Ctrl+C
   rl.on('SIGINT', () => {
@@ -105,7 +108,8 @@ export async function runRepl(agent: Agent): Promise<void> {
 
   const prompt = (): Promise<string> =>
     new Promise((resolve, reject) => {
-      rl.question(chalk.cyan('> '), (answer) => {
+      const indicator = planState.active ? chalk.magenta('[PLAN]> ') : chalk.cyan('> ');
+      rl.question(indicator, (answer) => {
         resolve(answer);
       });
       rl.once('close', () => reject(new Error('readline closed')));
@@ -127,6 +131,7 @@ export async function runRepl(agent: Agent): Promise<void> {
         switch (trimmed) {
           case '/clear':
             agent.clearHistory();
+            resetPromptCache();
             console.log(chalk.dim('Conversation cleared.'));
             continue;
           case '/cost': {
@@ -137,11 +142,37 @@ export async function runRepl(agent: Agent): Promise<void> {
           case '/compact':
             try {
               await agent.compact();
+              resetPromptCache();
               console.log(chalk.dim('Conversation compacted.'));
             } catch {
               console.log(chalk.dim('Compact not yet implemented.'));
             }
             continue;
+          case '/plan':
+            if (planState.active) {
+              console.log(chalk.yellow('Already in plan mode. Use the agent to generate and submit a plan.'));
+            } else {
+              planState = enterPlanMode(planState, agent.config.yolo);
+              console.log(chalk.cyan('[PLAN MODE] Entering plan mode — read-only tools only'));
+              console.log(chalk.dim('  The agent will explore the codebase and generate a plan.'));
+              console.log(chalk.dim('  Write tools are disabled until the plan is approved.'));
+            }
+            continue;
+          case '/status': {
+            const usage = agent.tokenUsage;
+            const total = usage.inputTokens + usage.outputTokens;
+            console.log(chalk.cyan('Session Status:'));
+            console.log(chalk.dim(`  Messages: ${agent.messages.length}`));
+            console.log(chalk.dim(`  Tokens: ${total.toLocaleString()}`));
+            printTokenBar(usage.inputTokens, usage.outputTokens, agent.config.effectiveContextWindow);
+            console.log(chalk.dim(`  Plan mode: ${planState.active ? 'active' : 'inactive'}`));
+            continue;
+          }
+          case '/rules': {
+            console.log(chalk.cyan('Permission Rules:'));
+            console.log(chalk.dim('  (No rules configured)'));
+            continue;
+          }
           default:
             // Handle /remember <text>
             if (trimmed.startsWith('/remember ')) {
