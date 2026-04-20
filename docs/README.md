@@ -2,15 +2,43 @@
 
 > 从零构建一个迷你版 Claude Code 的完整开发记录。每个任务记录了做了什么、为什么这样做、以及对应 Claude Code 的哪些概念。
 
+## 快速开始
+
+```bash
+# 安装依赖
+pnpm install
+
+# 配置 API Key
+cp .env.example .env
+# 编辑 .env，填入至少一个 API Key（推荐 DEEPSEEK_API_KEY）
+
+# 构建
+pnpm run build
+
+# 运行（交互模式）
+node dist/index.js --provider deepseek
+
+# 运行（一次性模式）
+node dist/index.js --provider deepseek "读取 package.json"
+
+# 运行测试
+pnpm test                      # 384 个单元测试
+bash scripts/e2e-test.sh       # 27 个端到端测试
+```
+
 ## 项目目标
 
-通过从零实现一个最小可用的 CLI 编程 Agent，深入理解 Claude Code 的核心架构设计。项目分三个阶段递进实现：
+通过从零实现一个 CLI 编程 Agent，深入理解 Claude Code 的核心架构设计。项目分 7 个阶段递进实现：
 
-| 阶段 | 分支 | 目标 |
-|------|------|------|
-| Phase 1 | `phase-1/minimal-skeleton` | 最小可运行骨架：Agent Loop + API + 基础工具 + CLI |
-| Phase 2 | `phase-2/core-enhancement` | 核心增强：编辑策略 + 搜索 + 安全 + 压缩 + 持久化 |
-| Phase 3 | `phase-3/advanced-features` | 高级特性：CLAUDE.md + Yolo + 代码质量 + 完整测试 |
+| 阶段 | 分支 | 标签 | 目标 |
+|------|------|------|------|
+| Phase 1 | `phase-1/minimal-skeleton` | v0.1.0 | 最小骨架：Agent Loop + API + 基础工具 + CLI |
+| Phase 2 | `phase-2/core-enhancement` | v0.2.0 | 核心增强：编辑策略 + 搜索 + 安全 + 压缩 + 持久化 |
+| Phase 3 | `phase-3/advanced-features` | v0.3.0 | 高级特性：CLAUDE.md + Yolo + 代码质量 |
+| Phase 4 | `phase-4/architecture-upgrade` | v0.4.0 | 架构升级：双层 Generator + 三级压缩 + 错误恢复 |
+| Phase 5 | `phase-5/security-and-tools` | v0.5.0 | 安全与工具：权限规则 + 安全语义 + 流式并行 |
+| Phase 6 | `phase-6/multi-agent-and-memory` | v0.6.0 | 多 Agent：子 Agent + 记忆系统 + Hook |
+| Phase 7 | `phase-7/plan-mode-and-polish` | v1.0.0 | 计划模式 + 提示词缓存 + UI 增强 |
 
 ## 技术栈
 
@@ -28,11 +56,12 @@
 | Chalk | ^5.6.2 | 终端彩色输出 |
 | Vitest | ^4.1.4 | 测试框架 |
 | fast-check | ^4.6.0 | 属性测试 |
+| ESLint + Prettier | — | 代码质量 |
 | pnpm | — | 包管理器 |
 
 ## 开发日志
 
-### Phase 1: 最小可运行骨架
+### Phase 1: 最小可运行骨架 (v0.1.0)
 
 - [Task 1: 项目初始化与工程基础搭建](./01-project-init.md)
 - [Task 2: AI Provider 工厂](./02-provider-factory.md)
@@ -42,7 +71,7 @@
 - [Task 6: CLI 交互界面](./06-cli-interface.md)
 - [Task 7: Phase 1 检查点](./07-phase1-checkpoint.md)
 
-### Phase 2: 核心能力增强
+### Phase 2: 核心能力增强 (v0.2.0)
 
 - [Task 8: Search-and-Replace 编辑策略](./08-edit-strategy.md)
 - [Task 9: 文件搜索与浏览工具](./09-file-search.md)
@@ -51,11 +80,11 @@
 - [Task 12: 会话持久化](./12-session-persistence.md)
 - [Task 13: Phase 2 检查点](./13-phase2-checkpoint.md)
 
-### Phase 3: 高级特性与质量保障
+### Phase 3: 高级特性与质量保障 (v0.3.0)
 
 - [Task 14-19: Phase 3 总结](./14-19-phase3-summary.md)
 
-### Phase 4: 架构升级 (v2)
+### Phase 4: 架构升级 (v0.4.0)
 
 - [Task 20: 双层架构重构](./20-dual-layer-architecture.md)
 - [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
@@ -63,61 +92,138 @@
 - [Task 23: 消息规范化](./23-message-normalization.md)
 - [Task 24: Phase 4 检查点](./24-phase4-checkpoint.md)
 
-### Phase 5: 安全与工具 (v2)
+### Phase 5: 安全与工具 (v0.5.0)
 
 - [Task 25-28: Phase 5 总结](./25-phase5-security.md)
 
-### Phase 6: 多 Agent 与记忆 (v2)
+### Phase 6: 多 Agent 与记忆 (v0.6.0)
 
 - [Task 30-33: Phase 6 总结](./30-phase6-multi-agent-memory.md)
 
-### Phase 7: 计划模式与优化 (v2)
+### Phase 7: 计划模式与优化 (v1.0.0)
 
 - [Task 35-39: Phase 7 最终版](./35-phase7-final.md)
-- [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
+
+### 测试文档
+
+- [测试指南总览](./test/README.md)
 
 ## 项目结构
 
 ```
 mini-claude-code/
 ├── src/
-│   ├── index.ts              # CLI 入口点
-│   ├── cli.ts                # 命令行参数解析 + REPL
-│   ├── ui.ts                 # 终端 UI 输出
-│   ├── agent.ts              # Agent Loop 核心
-│   ├── prompt.ts             # Prompt 编排
-│   ├── provider.ts           # AI 提供商工厂
-│   ├── compactor.ts          # 上下文压缩器
-│   ├── session.ts            # 会话持久化
-│   ├── errors.ts             # 自定义错误类
-│   ├── types.ts              # 共享类型定义
-│   ├── system-prompt.md      # 系统提示词模板
-│   └── tools/
-│       ├── index.ts          # 工具注册表
-│       ├── file-ops.ts       # 文件操作工具
-│       ├── shell.ts          # Shell 执行工具
-│       └── editor.ts         # 编辑策略工具
+│   ├── index.ts                  # CLI 入口点
+│   ├── cli.ts                    # 命令行参数解析 + REPL 循环
+│   ├── ui.ts                     # 终端 UI 输出（彩色、图标、token bar）
+│   ├── query-engine.ts           # QueryEngine 外层会话管理
+│   ├── query.ts                  # query() 内层循环 (async generator)
+│   ├── agent.ts                  # Agent 向后兼容包装器
+│   ├── prompt.ts                 # Prompt 编排（静态/动态分离 + memoize）
+│   ├── provider.ts               # AI 提供商工厂（5 个提供商）
+│   ├── normalizer.ts             # 消息规范化（配对修复 + 合并）
+│   ├── permissions.ts            # 权限规则系统（deny-first）
+│   ├── streaming-tool-executor.ts # 流式并行工具执行器
+│   ├── plan-mode.ts              # 计划模式（权限降级 + 审批）
+│   ├── hooks.ts                  # Hook 事件系统（6 事件 + Command）
+│   ├── session.ts                # 会话持久化
+│   ├── errors.ts                 # 自定义错误类
+│   ├── types.ts                  # 共享类型定义
+│   ├── system-prompt.md          # 系统提示词模板
+│   ├── compactor/                # 三级渐进压缩管线
+│   │   ├── index.ts              # 管线入口
+│   │   ├── snip.ts               # 第1级：零成本截断
+│   │   ├── micro.ts              # 第2级：零成本压缩
+│   │   └── auto.ts               # 第3级：模型摘要 + 断路器
+│   ├── memory/                   # 跨会话记忆系统
+│   │   ├── index.ts              # 公共 API
+│   │   ├── store.ts              # 存储层（Markdown + YAML frontmatter）
+│   │   └── recall.ts             # 语义召回（LLM 评估相关性）
+│   └── tools/                    # 工具系统
+│       ├── index.ts              # 工具注册表 + 安全语义元数据
+│       ├── file-ops.ts           # read_file + grep_search + list_files
+│       ├── shell.ts              # run_shell + 结构化命令解析 + 危险检测
+│       ├── editor.ts             # edit_file (search-and-replace) + write_file
+│       └── agent-tool.ts         # 子 Agent 委派工具
 ├── tests/
-│   ├── unit/                 # 单元测试
-│   └── integration/          # 集成测试
-├── docs/                     # 开发文档（你在这里）
+│   ├── unit/                     # 24 个单元测试文件
+│   └── integration/              # 集成测试
+├── scripts/
+│   └── e2e-test.sh               # 端到端自动化测试（27 个场景）
+├── docs/                         # 开发文档（22 篇）
+│   └── test/                     # 测试文档（9 篇）
+├── test-reports/                 # 测试日志（.gitignore）
 ├── package.json
 ├── tsconfig.json
-└── vitest.config.ts
+├── vitest.config.ts
+├── eslint.config.js
+├── .prettierrc
+├── .env.example                  # API Key 配置模板
+└── CLAUDE.md                     # 项目级指令（可选）
 ```
 
-## Git 提交历史
+## 可用命令
 
-```
---- Phase 2 ---
-98caf77 feat: 实现 search-and-replace 编辑策略 (edit_file)
+### 开发命令
 
---- Phase 1 → master (tag: v0.1.0) ---
-a382229 feat: 添加 .env 配置支持
-f4f0605 feat: 新增 DeepSeek + 智谱(Zhipu/GLM) 提供商支持
-83c6922 feat: 实现 Agent Loop 核心循环 + CLI 交互界面
-71c7c97 feat: 实现工具注册表 + 3 个基础工具 (read_file, write_file, run_shell)
-6b5cad5 feat: 实现 Prompt 编排器 — 系统提示词动态组装
-aee0b3d feat: 实现 AI Provider 工厂 — Vercel AI SDK 多提供商支持
-9d087d1 chore: 项目初始化 — TypeScript + Vercel AI SDK + Vitest 工程骨架
+```bash
+pnpm run build          # TypeScript 编译
+pnpm run dev            # 监听模式编译
+pnpm test               # 运行 384 个单元测试
+pnpm test:watch         # 监听模式测试
+pnpm test:coverage      # 覆盖率报告
+pnpm run lint           # ESLint 检查
+pnpm run format         # Prettier 格式化
+pnpm run typecheck      # tsc --noEmit 类型检查
+pnpm run check-all      # typecheck + lint + test 一键质量门
+bash scripts/e2e-test.sh # 27 个端到端测试
 ```
+
+### CLI 命令
+
+```bash
+node dist/index.js                              # REPL 交互模式（默认 Anthropic）
+node dist/index.js --provider deepseek           # 指定提供商
+node dist/index.js --model gpt-4o-mini           # 指定模型
+node dist/index.js --yolo                        # 跳过所有确认
+node dist/index.js --resume                      # 恢复上次会话
+node dist/index.js "读取 package.json"            # 一次性模式
+```
+
+### REPL 斜杠命令
+
+| 命令 | 功能 |
+|------|------|
+| `/clear` | 清空对话历史 |
+| `/cost` | 显示 token 用量和估算成本 |
+| `/compact` | 手动触发上下文压缩 |
+| `/remember <text>` | 创建跨会话记忆 |
+| `/memory` | 列出所有记忆 |
+| `/plan` | 进入计划模式（只读） |
+| `/status` | 显示会话状态 |
+| `/rules` | 显示权限规则 |
+
+## 支持的 AI 提供商
+
+| 提供商 | 默认模型 | 环境变量 |
+|--------|----------|----------|
+| `anthropic` | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` |
+| `openai` | gpt-4o | `OPENAI_API_KEY` |
+| `google` | gemini-2.5-flash | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` |
+| `zhipu` | glm-4-plus | `ZHIPU_API_KEY` |
+
+## 最终指标
+
+| 指标 | 数值 |
+|------|------|
+| 单元测试 | 384 |
+| 端到端测试 | 27 |
+| 源文件 | 25+ |
+| 工具 | 6 + agent |
+| 提供商 | 5 |
+| 开发文档 | 22 篇 |
+| 测试文档 | 9 篇 |
+| Git 标签 | v0.1.0 → v1.0.0 (7 个) |
+| Phase | 7 |
+| Task | 39 |
