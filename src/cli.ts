@@ -13,6 +13,7 @@ import chalk from 'chalk';
 import type { Agent } from './agent.js';
 import type { CliArgs } from './types.js';
 import { printCost } from './ui.js';
+import { createMemory, listMemories } from './memory/index.js';
 
 /**
  * 解析命令行参数。
@@ -142,6 +143,49 @@ export async function runRepl(agent: Agent): Promise<void> {
             }
             continue;
           default:
+            // Handle /remember <text>
+            if (trimmed.startsWith('/remember ')) {
+              const text = trimmed.slice('/remember '.length).trim();
+              if (!text) {
+                console.log(chalk.red('Usage: /remember <text>'));
+                continue;
+              }
+              try {
+                // Auto-classify memory type based on content
+                let type: 'user' | 'feedback' | 'project' | 'reference' = 'reference';
+                const lower = text.toLowerCase();
+                if (lower.includes('prefer') || lower.includes('always') || lower.includes('never') || lower.includes('i like') || lower.includes('i want')) {
+                  type = 'user';
+                } else if (lower.includes('instead') || lower.includes('not') || lower.includes('use') || lower.includes('should') || lower.includes('correct')) {
+                  type = 'feedback';
+                } else if (lower.includes('deadline') || lower.includes('release') || lower.includes('sprint') || lower.includes('meeting') || lower.includes('date')) {
+                  type = 'project';
+                }
+                const description = text.slice(0, 80);
+                const filename = createMemory(type, description, text);
+                console.log(chalk.green(`Memory saved: ${filename} [${type}]`));
+              } catch (err) {
+                console.log(chalk.red(`Failed to save memory: ${err instanceof Error ? err.message : String(err)}`));
+              }
+              continue;
+            }
+            // Handle /memory
+            if (trimmed === '/memory') {
+              try {
+                const memories = listMemories();
+                if (memories.length === 0) {
+                  console.log(chalk.dim('No memories stored. Use /remember <text> to create one.'));
+                } else {
+                  console.log(chalk.green(`Memories (${memories.length}):`));
+                  for (const m of memories) {
+                    console.log(chalk.dim(`  [${m.type}] ${m.filename} (${m.age}): ${m.description}`));
+                  }
+                }
+              } catch (err) {
+                console.log(chalk.red(`Failed to list memories: ${err instanceof Error ? err.message : String(err)}`));
+              }
+              continue;
+            }
             console.log(chalk.red(`Unknown command: ${trimmed}`));
             continue;
         }
