@@ -59,11 +59,17 @@
 
 - [Task 20: 双层架构重构](./20-dual-layer-architecture.md)
 - [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
-- [Task 22+23: 错误恢复 + 消息规范化](./22-error-recovery.md)
+- [Task 22: 错误恢复与 Continue Site](./22-error-recovery.md)
+- [Task 23: 消息规范化](./23-message-normalization.md)
+- [Task 24: Phase 4 检查点](./24-phase4-checkpoint.md)
 
 ### Phase 5: 安全与工具 (v2)
 
 - [Task 25-28: Phase 5 总结](./25-phase5-security.md)
+
+### Phase 6: 多 Agent 与记忆 (v2)
+
+- [Task 30-33: Phase 6 总结](./30-phase6-multi-agent-memory.md)
 - [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
 
 ## 项目结构
