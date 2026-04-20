@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getToolDefinitions, truncateResult } from '../../src/tools/index.js';
+import { getToolDefinitions, truncateResult, getToolSafety } from '../../src/tools/index.js';
+import type { ToolSafetyMetadata } from '../../src/tools/index.js';
 
 describe('Tool Registry', () => {
   describe('truncateResult', () => {
@@ -86,6 +87,64 @@ describe('Tool Registry', () => {
         expect(toolDef.execute, `${name} should have an execute function`).toBeDefined();
         expect(typeof toolDef.execute).toBe('function');
       }
+    });
+  });
+
+  describe('getToolSafety', () => {
+    it('should return correct metadata for read_file', () => {
+      const safety = getToolSafety('read_file');
+      expect(safety.isReadOnly).toBe(true);
+      expect(safety.isConcurrencySafe).toBe(true);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return correct metadata for grep_search', () => {
+      const safety = getToolSafety('grep_search');
+      expect(safety.isReadOnly).toBe(true);
+      expect(safety.isConcurrencySafe).toBe(true);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return correct metadata for list_files', () => {
+      const safety = getToolSafety('list_files');
+      expect(safety.isReadOnly).toBe(true);
+      expect(safety.isConcurrencySafe).toBe(true);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return correct metadata for write_file', () => {
+      const safety = getToolSafety('write_file');
+      expect(safety.isReadOnly).toBe(false);
+      expect(safety.isConcurrencySafe).toBe(false);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return correct metadata for edit_file', () => {
+      const safety = getToolSafety('edit_file');
+      expect(safety.isReadOnly).toBe(false);
+      expect(safety.isConcurrencySafe).toBe(false);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return correct metadata for run_shell', () => {
+      const safety = getToolSafety('run_shell');
+      expect(safety.isReadOnly).toBe(false);
+      expect(safety.isConcurrencySafe).toBe(false);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return fail-closed defaults for unknown tools', () => {
+      const safety = getToolSafety('unknown_tool');
+      expect(safety.isReadOnly).toBe(false);
+      expect(safety.isConcurrencySafe).toBe(false);
+      expect(safety.isDestructive).toBe(false);
+    });
+
+    it('should return fail-closed defaults for empty string', () => {
+      const safety = getToolSafety('');
+      expect(safety.isReadOnly).toBe(false);
+      expect(safety.isConcurrencySafe).toBe(false);
+      expect(safety.isDestructive).toBe(false);
     });
   });
 });

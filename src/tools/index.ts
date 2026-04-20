@@ -16,6 +16,42 @@ import { writeFile, editFile } from './editor.js';
 import { executeShellCommand, needsConfirmation } from './shell.js';
 
 /**
+ * 工具安全语义元数据
+ *
+ * 每个工具声明自己的安全属性，系统基于这些声明自动做出权限和并发决策。
+ * fail-closed 默认值：isReadOnly: false, isConcurrencySafe: false, isDestructive: false
+ *
+ * 参考 Claude Code: src/Tool.ts 的 isReadOnly(), isConcurrencySafe(), isDestructive()
+ */
+export interface ToolSafetyMetadata {
+  isReadOnly: boolean;
+  isConcurrencySafe: boolean;
+  isDestructive: boolean;
+}
+
+/** 每个工具的安全语义声明 */
+const TOOL_SAFETY: Record<string, ToolSafetyMetadata> = {
+  read_file: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
+  write_file: { isReadOnly: false, isConcurrencySafe: false, isDestructive: false },
+  edit_file: { isReadOnly: false, isConcurrencySafe: false, isDestructive: false },
+  grep_search: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
+  list_files: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
+  run_shell: { isReadOnly: false, isConcurrencySafe: false, isDestructive: false }, // dynamic
+};
+
+/**
+ * 获取工具的安全语义元数据
+ *
+ * 对于未声明的工具，返回 fail-closed 默认值（全部 false/不安全）。
+ *
+ * @param toolName - 工具名称
+ * @returns 安全语义元数据
+ */
+export function getToolSafety(toolName: string): ToolSafetyMetadata {
+  return TOOL_SAFETY[toolName] ?? { isReadOnly: false, isConcurrencySafe: false, isDestructive: false };
+}
+
+/**
  * 确认回调函数类型。
  * 返回 true 表示用户允许执行，false 表示拒绝。
  */

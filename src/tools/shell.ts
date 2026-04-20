@@ -24,13 +24,61 @@ export const DANGEROUS_PATTERNS: RegExp[] = [
   /\bshutdown\b/,
 ];
 
+/** 扩展的危险命令模式列表 */
+export const EXTENDED_DANGEROUS_PATTERNS: RegExp[] = [
+  ...DANGEROUS_PATTERNS,
+  /\bchmod\b/,
+  /\bchown\b/,
+  /\bcurl\b.*\|\s*(?:sh|bash)/,
+  /\bwget\b.*\|\s*(?:sh|bash)/,
+  /\bnpm\s+publish\b/,
+  /\bcargo\s+publish\b/,
+  /\bexport\s+(?:PATH|HOME|LD_PRELOAD)\b/,
+];
+
+/** Split compound commands into segments */
+export function parseCompoundCommand(cmd: string): string[] {
+  // Split on |, &&, ||, ; (simplified — not a full parser)
+  return cmd.split(/\s*(?:\|\||&&|;|\|)\s*/).filter(Boolean);
+}
+
+/** Detect command substitution $() or backticks */
+export function hasCommandSubstitution(cmd: string): boolean {
+  return /\$\(/.test(cmd) || /`[^`]+`/.test(cmd);
+}
+
+/** Detect redirection to system paths */
+export function hasSystemPathRedirection(cmd: string): boolean {
+  return />\s*(?:\/etc\/|\/usr\/|~\/\.bashrc|~\/\.ssh\/)/.test(cmd);
+}
+
+/** Detect obfuscation attempts */
+export function hasObfuscation(cmd: string): boolean {
+  return (
+    /base64\s+-d\s*\|\s*(?:sh|bash)/.test(cmd) ||
+    (/\$\{?\w+\}?\s/.test(cmd) && /eval/.test(cmd))
+  );
+}
+
 /**
- * 检测命令是否危险
+ * 检测命令是否危险（增强版）
+ *
+ * 检查扩展模式、结构化命令解析（管道/链/序列）、
+ * 命令替换、系统路径重定向和混淆尝试。
+ *
  * @param command - Shell 命令
  * @returns 是否匹配危险模式
  */
 export function isDangerousCommand(command: string): boolean {
-  return DANGEROUS_PATTERNS.some((pattern) => pattern.test(command));
+  // Check extended patterns on the full command
+  if (EXTENDED_DANGEROUS_PATTERNS.some((p) => p.test(command))) return true;
+  // Check structural issues
+  if (hasCommandSubstitution(command)) return true;
+  if (hasSystemPathRedirection(command)) return true;
+  if (hasObfuscation(command)) return true;
+  // Check each segment of compound commands
+  const segments = parseCompoundCommand(command);
+  return segments.some((seg) => EXTENDED_DANGEROUS_PATTERNS.some((p) => p.test(seg)));
 }
 
 /**
