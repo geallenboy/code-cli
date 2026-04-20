@@ -229,12 +229,12 @@ export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
   });
 
   return {
-    read_file: readFileTool,
-    write_file: writeFileTool,
     edit_file: editFileTool,
     grep_search: grepSearchTool,
     list_files: listFilesTool,
+    read_file: readFileTool,
     run_shell: runShellTool,
+    write_file: writeFileTool,
   };
 }
 

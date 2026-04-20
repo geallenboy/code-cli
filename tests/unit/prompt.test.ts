@@ -6,10 +6,18 @@
  * - 工具描述注入
  * - git 上下文获取与优雅降级
  * - CLAUDE.md 加载
+ * - 静态/动态分离与缓存
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildSystemPrompt, getGitContext, loadClaudeMd } from '../../src/prompt.js';
+import {
+  buildSystemPrompt,
+  buildStaticSystemPrompt,
+  buildDynamicContext,
+  resetPromptCache,
+  getGitContext,
+  loadClaudeMd,
+} from '../../src/prompt.js';
 import type { ToolDescription } from '../../src/prompt.js';
 
 // Mock child_process for git commands
@@ -24,15 +32,16 @@ const mockExecSync = vi.mocked(execSync);
 describe('Prompt Orchestration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetPromptCache();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    resetPromptCache();
   });
 
   describe('buildSystemPrompt', () => {
     it('should include the current working directory', () => {
-      // Make git context return empty to simplify
       mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
 
       const tools: ToolDescription[] = [];
@@ -85,7 +94,6 @@ describe('Prompt Orchestration', () => {
     });
 
     it('should include git context when available', () => {
-      // Mock successful git commands
       mockExecSync.mockImplementation((cmd: string) => {
         const command = String(cmd);
         if (command.includes('rev-parse')) return 'main\n';
@@ -103,8 +111,109 @@ describe('Prompt Orchestration', () => {
       mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
 
       const prompt = buildSystemPrompt([]);
-      // Should not throw, should contain fallback text
       expect(prompt).toContain('Not a git repository');
+    });
+  });
+
+  describe('buildStaticSystemPrompt', () => {
+    it('should return a string containing platform info', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const tools: ToolDescription[] = [
+        { name: 'read_file', description: 'Read a file' },
+      ];
+      const prompt = buildStaticSystemPrompt(tools);
+      expect(prompt).toContain(process.platform);
+    });
+
+    it('should include tool descriptions', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const tools: ToolDescription[] = [
+        { name: 'read_file', description: 'Read a file' },
+        { name: 'write_file', description: 'Write a file' },
+      ];
+      const prompt = buildStaticSystemPrompt(tools);
+      expect(prompt).toContain('read_file');
+      expect(prompt).toContain('write_file');
+    });
+
+    it('should memoize the result (return same string on second call)', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const tools: ToolDescription[] = [
+        { name: 'read_file', description: 'Read a file' },
+      ];
+      const first = buildStaticSystemPrompt(tools);
+      const second = buildStaticSystemPrompt(tools);
+      expect(first).toBe(second);
+    });
+
+    it('should return cached result even with different tools (memoized)', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const tools1: ToolDescription[] = [{ name: 'read_file', description: 'Read' }];
+      const tools2: ToolDescription[] = [{ name: 'write_file', description: 'Write' }];
+      const first = buildStaticSystemPrompt(tools1);
+      const second = buildStaticSystemPrompt(tools2);
+      // Second call returns cached version from first call
+      expect(first).toBe(second);
+    });
+  });
+
+  describe('resetPromptCache', () => {
+    it('should clear the cached static prompt', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const tools1: ToolDescription[] = [{ name: 'read_file', description: 'Read' }];
+      const first = buildStaticSystemPrompt(tools1);
+
+      resetPromptCache();
+
+      const tools2: ToolDescription[] = [{ name: 'write_file', description: 'Write' }];
+      const second = buildStaticSystemPrompt(tools2);
+
+      // After reset, should rebuild with new tools
+      expect(second).not.toBe(first);
+      expect(second).toContain('write_file');
+    });
+  });
+
+  describe('buildDynamicContext', () => {
+    it('should include current date', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const context = buildDynamicContext();
+      const today = new Date().toISOString().split('T')[0];
+      expect(context).toContain(today);
+    });
+
+    it('should include working directory', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const context = buildDynamicContext();
+      expect(context).toContain(process.cwd());
+    });
+
+    it('should include git context when available', () => {
+      mockExecSync.mockImplementation((cmd: string) => {
+        const command = String(cmd);
+        if (command.includes('rev-parse')) return 'main\n';
+        if (command.includes('log')) return 'abc1234 commit\n';
+        if (command.includes('status')) return '';
+        return '';
+      });
+
+      const context = buildDynamicContext();
+      expect(context).toContain('Git context:');
+      expect(context).toContain('Branch: main');
+    });
+
+    it('should omit git context when not available', () => {
+      mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
+
+      const context = buildDynamicContext();
+      expect(context).not.toContain('Git context:');
     });
   });
 
@@ -160,9 +269,7 @@ describe('Prompt Orchestration', () => {
 
   describe('loadClaudeMd', () => {
     it('should return empty string when CLAUDE.md does not exist', () => {
-      // Default behavior — no CLAUDE.md in test directory
       const content = loadClaudeMd();
-      // May or may not exist depending on test environment
       expect(typeof content).toBe('string');
     });
   });

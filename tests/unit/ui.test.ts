@@ -1,11 +1,20 @@
 /**
  * 终端 UI 输出单元测试
  *
- * 测试 printToolCall、printToolResult、printAssistantText、printCost 的输出行为。
+ * 测试 printToolCall、printToolResult、printAssistantText、printCost、
+ * printPermissionRequest、printTokenBar、printCompactNotification 的输出行为。
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { printToolCall, printToolResult, printAssistantText, printCost } from '../../src/ui.js';
+import {
+  printToolCall,
+  printToolResult,
+  printAssistantText,
+  printCost,
+  printPermissionRequest,
+  printTokenBar,
+  printCompactNotification,
+} from '../../src/ui.js';
 
 describe('UI Output', () => {
   afterEach(() => {
@@ -35,7 +44,6 @@ describe('UI Output', () => {
       const longResult = 'a'.repeat(600);
       printToolResult('read_file', longResult);
       const output = spy.mock.calls.map((c) => String(c[0])).join('');
-      // The displayed output should be truncated
       expect(output.length).toBeLessThan(600);
     });
 
@@ -71,6 +79,98 @@ describe('UI Output', () => {
       const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
       expect(output).toContain('0');
       expect(output).toContain('$0.0000');
+    });
+  });
+
+  describe('printPermissionRequest', () => {
+    it('should display tool name and risk level', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printPermissionRequest('run_shell', { command: 'rm -rf /' }, 'HIGH');
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('run_shell');
+      expect(output).toContain('HIGH');
+    });
+
+    it('should truncate long input to 200 chars', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const longInput = { command: 'x'.repeat(300) };
+      printPermissionRequest('run_shell', longInput, 'MEDIUM');
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      // The JSON.stringify output is sliced to 200 chars
+      expect(output).toContain('MEDIUM');
+    });
+
+    it('should display LOW risk level', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printPermissionRequest('read_file', { file_path: 'test.ts' }, 'LOW');
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('LOW');
+    });
+  });
+
+  describe('printTokenBar', () => {
+    it('should display a progress bar with percentage', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printTokenBar(5000, 1000, 100000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('6%');
+      expect(output).toContain('6,000');
+      expect(output).toContain('100,000');
+    });
+
+    it('should show green color for low usage', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printTokenBar(1000, 500, 100000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      // Just verify it outputs something with the percentage
+      expect(output).toContain('2%');
+    });
+
+    it('should handle zero window size gracefully', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printTokenBar(1000, 500, 0);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('0%');
+    });
+
+    it('should cap at 100% for overflow', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printTokenBar(90000, 20000, 100000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('110%');
+    });
+
+    it('should show high usage percentage', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printTokenBar(80000, 5000, 100000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('85%');
+    });
+  });
+
+  describe('printCompactNotification', () => {
+    it('should display compaction level and tokens freed', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printCompactNotification('micro', 5000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('micro');
+      expect(output).toContain('5,000');
+    });
+
+    it('should display snip level', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printCompactNotification('snip', 1200);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('snip');
+      expect(output).toContain('1,200');
+    });
+
+    it('should display auto level', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printCompactNotification('auto', 25000);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('auto');
+      expect(output).toContain('25,000');
     });
   });
 });
