@@ -70,6 +70,10 @@
 ### Phase 6: 多 Agent 与记忆 (v2)
 
 - [Task 30-33: Phase 6 总结](./30-phase6-multi-agent-memory.md)
+
+### Phase 7: 计划模式与优化 (v2)
+
+- [Task 35-39: Phase 7 最终版](./35-phase7-final.md)
 - [Task 21: 三级渐进压缩管线](./21-three-level-compression.md)
 
 ## 项目结构
