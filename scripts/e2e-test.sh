@@ -2,8 +2,19 @@
 # Mini Claude Code — 端到端自动化测试脚本
 # 使用 DeepSeek 提供商测试所有功能
 # 用法: bash scripts/e2e-test.sh
+# 日志: test-reports/e2e-{timestamp}.log
 
 set -euo pipefail
+
+# 日志目录
+REPORT_DIR="test-reports"
+mkdir -p "$REPORT_DIR"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+LOG_FILE="$REPORT_DIR/e2e-${TIMESTAMP}.log"
+LATEST_LINK="$REPORT_DIR/latest.log"
+
+# 同时输出到终端和日志文件（去除颜色码写入日志）
+log_plain() { echo "$1" | sed 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE"; }
 
 # 颜色定义
 GREEN='\033[0;32m'
@@ -16,12 +27,46 @@ PASS=0
 FAIL=0
 SKIP=0
 RESULTS=""
+PLAIN_RESULTS=""
 
 # 测试辅助函数
-pass() { PASS=$((PASS+1)); RESULTS+="${GREEN}✅ PASS${NC} $1\n"; echo -e "${GREEN}✅ PASS${NC} $1"; }
-fail() { FAIL=$((FAIL+1)); RESULTS+="${RED}❌ FAIL${NC} $1: $2\n"; echo -e "${RED}❌ FAIL${NC} $1: $2"; }
-skip() { SKIP=$((SKIP+1)); RESULTS+="${YELLOW}⏭ SKIP${NC} $1\n"; echo -e "${YELLOW}⏭ SKIP${NC} $1"; }
-section() { echo -e "\n${YELLOW}━━━ $1 ━━━${NC}"; }
+pass() {
+  PASS=$((PASS+1))
+  RESULTS+="${GREEN}✅ PASS${NC} $1\n"
+  PLAIN_RESULTS+="✅ PASS $1\n"
+  echo -e "${GREEN}✅ PASS${NC} $1"
+  log_plain "✅ PASS $1"
+}
+fail() {
+  FAIL=$((FAIL+1))
+  RESULTS+="${RED}❌ FAIL${NC} $1: $2\n"
+  PLAIN_RESULTS+="❌ FAIL $1: $2\n"
+  echo -e "${RED}❌ FAIL${NC} $1: $2"
+  log_plain "❌ FAIL $1: $2"
+}
+skip() {
+  SKIP=$((SKIP+1))
+  RESULTS+="${YELLOW}⏭ SKIP${NC} $1\n"
+  PLAIN_RESULTS+="⏭ SKIP $1\n"
+  echo -e "${YELLOW}⏭ SKIP${NC} $1"
+  log_plain "⏭ SKIP $1"
+}
+section() {
+  echo -e "\n${YELLOW}━━━ $1 ━━━${NC}"
+  log_plain ""
+  log_plain "━━━ $1 ━━━"
+}
+
+# 写入日志头
+{
+  echo "Mini Claude Code — E2E Test Report"
+  echo "Date: $(date)"
+  echo "Node: $(node --version)"
+  echo "Platform: $(uname -s) $(uname -m)"
+  echo "Provider: deepseek"
+  echo "=========================================="
+  echo ""
+} > "$LOG_FILE"
 
 # 临时目录
 TMPDIR=$(mktemp -d)
@@ -393,6 +438,32 @@ echo -e "$RESULTS"
 echo ""
 TOTAL=$((PASS+FAIL+SKIP))
 echo -e "总计: ${GREEN}$PASS 通过${NC} / ${RED}$FAIL 失败${NC} / ${YELLOW}$SKIP 跳过${NC} / $TOTAL 总计"
+echo ""
+
+# 写入日志汇总
+{
+  echo ""
+  echo "=========================================="
+  echo "测试结果汇总"
+  echo "=========================================="
+  echo ""
+  echo -e "$PLAIN_RESULTS"
+  echo ""
+  echo "总计: $PASS 通过 / $FAIL 失败 / $SKIP 跳过 / $TOTAL 总计"
+  echo ""
+  if [ $FAIL -eq 0 ]; then
+    echo "🎉 所有测试通过！"
+  else
+    echo "⚠️  有 $FAIL 个测试失败"
+  fi
+  echo ""
+  echo "完成时间: $(date)"
+} >> "$LOG_FILE"
+
+# 创建 latest 软链接
+ln -sf "e2e-${TIMESTAMP}.log" "$LATEST_LINK"
+
+echo -e "${DIM}日志已保存: $LOG_FILE${NC}"
 echo ""
 
 if [ $FAIL -eq 0 ]; then

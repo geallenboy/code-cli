@@ -18,6 +18,9 @@ dist/
 # Coverage
 coverage/
 
+# Test reports
+test-reports/
+
 # Reference material
 how-claude-code-works-main
 
