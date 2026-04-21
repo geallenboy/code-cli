@@ -16,6 +16,8 @@ import { printCost, printTokenBar } from './ui.js';
 import { createMemory, listMemories } from './memory/index.js';
 import { createPlanModeState, enterPlanMode } from './plan-mode.js';
 import { resetPromptCache } from './prompt.js';
+import { getBuiltinSkills, getSkillPrompt, loadSkills } from './skills/index.js';
+import { createTask, listTasks as listAllTasks, getProgressSummary } from './tasks/index.js';
 
 /**
  * 解析命令行参数。
@@ -217,6 +219,123 @@ export async function runRepl(agent: Agent): Promise<void> {
               }
               continue;
             }
+
+            // Handle built-in skill commands: /commit, /review, /debug
+            if (trimmed === '/commit' || trimmed === '/review' || trimmed === '/debug') {
+              const skillName = trimmed.slice(1);
+              const builtins = getBuiltinSkills();
+              const skill = builtins.find((s) => s.name === skillName);
+              if (skill) {
+                console.log(chalk.cyan(`[Skill: ${skill.name}] ${skill.description}`));
+                await agent.chat(skill.prompt);
+                console.log();
+              }
+              continue;
+            }
+
+            // Handle /skill <name> — invoke a custom or built-in skill
+            if (trimmed.startsWith('/skill ')) {
+              const skillName = trimmed.slice('/skill '.length).trim();
+              if (!skillName) {
+                console.log(chalk.red('Usage: /skill <name>'));
+                continue;
+              }
+              // Check builtins first
+              const builtins = getBuiltinSkills();
+              const builtin = builtins.find((s) => s.name === skillName);
+              if (builtin) {
+                console.log(chalk.cyan(`[Skill: ${builtin.name}] ${builtin.description}`));
+                await agent.chat(builtin.prompt);
+                console.log();
+                continue;
+              }
+              // Check custom skills
+              const prompt = getSkillPrompt(skillName);
+              if (prompt) {
+                console.log(chalk.cyan(`[Skill: ${skillName}]`));
+                await agent.chat(prompt);
+                console.log();
+              } else {
+                // List available skills
+                const customs = loadSkills();
+                const allNames = [...builtins.map((s) => s.name), ...customs.map((s) => s.name)];
+                console.log(chalk.red(`Skill "${skillName}" not found.`));
+                if (allNames.length > 0) {
+                  console.log(chalk.dim(`Available skills: ${allNames.join(', ')}`));
+                }
+              }
+              continue;
+            }
+
+            // Handle /skill (no args) — list all skills
+            if (trimmed === '/skill') {
+              const builtins = getBuiltinSkills();
+              const customs = loadSkills();
+              console.log(chalk.cyan('Skills:'));
+              console.log(chalk.dim('  Built-in:'));
+              for (const s of builtins) {
+                console.log(chalk.dim(`    /${s.name} — ${s.description}`));
+              }
+              if (customs.length > 0) {
+                console.log(chalk.dim('  Custom:'));
+                for (const s of customs) {
+                  console.log(chalk.dim(`    /skill ${s.name} — ${s.description} [${s.trigger}]`));
+                }
+              }
+              continue;
+            }
+
+            // Handle /task commands
+            if (trimmed.startsWith('/task')) {
+              const taskArgs = trimmed.slice('/task'.length).trim();
+
+              // /task list or /task (no args)
+              if (!taskArgs || taskArgs === 'list') {
+                const tasks = listAllTasks();
+                if (tasks.length === 0) {
+                  console.log(chalk.dim('No tasks. Use /task add <title> to create one.'));
+                } else {
+                  console.log(chalk.cyan(`Tasks (${getProgressSummary()}):`));
+                  for (const t of tasks) {
+                    const statusIcon =
+                      t.status === 'completed' ? '✅' :
+                      t.status === 'in_progress' ? '🔄' :
+                      t.status === 'failed' ? '❌' : '⏳';
+                    console.log(chalk.dim(`  ${statusIcon} [${t.id}] ${t.title} (${t.status})`));
+                  }
+                }
+                continue;
+              }
+
+              // /task add <title>
+              if (taskArgs.startsWith('add ')) {
+                const title = taskArgs.slice('add '.length).trim();
+                if (!title) {
+                  console.log(chalk.red('Usage: /task add <title>'));
+                  continue;
+                }
+                const task = createTask(title);
+                console.log(chalk.green(`Task created: ${task.id} — ${task.title}`));
+                continue;
+              }
+
+              // /task run <id>
+              if (taskArgs.startsWith('run ')) {
+                const taskId = taskArgs.slice('run '.length).trim();
+                if (!taskId) {
+                  console.log(chalk.red('Usage: /task run <id>'));
+                  continue;
+                }
+                console.log(chalk.cyan(`Running task ${taskId}...`));
+                await agent.chat(`Execute task: ${taskId}. Find the task details and complete it.`);
+                console.log();
+                continue;
+              }
+
+              console.log(chalk.red('Usage: /task [list|add <title>|run <id>]'));
+              continue;
+            }
+
             console.log(chalk.red(`Unknown command: ${trimmed}`));
             continue;
         }

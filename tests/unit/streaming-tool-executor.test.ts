@@ -6,6 +6,9 @@
  * - 并发安全工具并行执行
  * - 非并发安全工具独占执行
  * - getCompletedResults + getRemainingResults
+ * - Promise.allSettled 并发执行
+ * - 级联中止（Bash 失败取消兄弟 Bash）
+ * - 执行计时报告
  */
 
 import { describe, it, expect } from 'vitest';
@@ -19,6 +22,12 @@ const readOnlySafety: ToolSafetyMetadata = {
 };
 
 const writeSafety: ToolSafetyMetadata = {
+  isReadOnly: false,
+  isConcurrencySafe: false,
+  isDestructive: false,
+};
+
+const bashSafety: ToolSafetyMetadata = {
   isReadOnly: false,
   isConcurrencySafe: false,
   isDestructive: false,
@@ -100,6 +109,138 @@ describe('StreamingToolExecutor', () => {
       // Both should complete, just not simultaneously
       expect(results.map((r) => r.result)).toContain('written');
       expect(results.map((r) => r.result)).toContain('edited');
+    });
+  });
+
+  describe('Promise.allSettled for concurrent tools', () => {
+    it('should handle individual failures without blocking others', async () => {
+      const executor = new StreamingToolExecutor();
+
+      executor.addTool('t1', 'read_file', {}, readOnlySafety, async () => {
+        throw new Error('file not found');
+      });
+      executor.addTool('t2', 'grep_search', {}, readOnlySafety, async () => {
+        return 'search result';
+      });
+
+      const results = await executor.getRemainingResults();
+      expect(results).toHaveLength(2);
+
+      const t1Result = results.find((r) => r.id === 't1');
+      const t2Result = results.find((r) => r.id === 't2');
+
+      expect(t1Result!.result).toContain('Error: file not found');
+      expect(t2Result!.result).toBe('search result');
+    });
+
+    it('should complete all concurrent tools even when multiple fail', async () => {
+      const executor = new StreamingToolExecutor();
+
+      executor.addTool('t1', 'read_file', {}, readOnlySafety, async () => {
+        throw new Error('error 1');
+      });
+      executor.addTool('t2', 'list_files', {}, readOnlySafety, async () => {
+        throw new Error('error 2');
+      });
+      executor.addTool('t3', 'grep_search', {}, readOnlySafety, async () => {
+        return 'success';
+      });
+
+      const results = await executor.getRemainingResults();
+      expect(results).toHaveLength(3);
+
+      const successResult = results.find((r) => r.id === 't3');
+      expect(successResult!.result).toBe('success');
+    });
+  });
+
+  describe('cascading abort for Bash errors', () => {
+    it('should cancel sibling Bash tools when one fails', async () => {
+      const executor = new StreamingToolExecutor();
+
+      // First bash tool will fail
+      executor.addTool('bash1', 'run_shell', {}, bashSafety, async () => {
+        throw new Error('command failed');
+      });
+      // Second bash tool should be cancelled
+      executor.addTool('bash2', 'run_shell', {}, bashSafety, async () => {
+        return 'should not run';
+      });
+
+      const results = await executor.getRemainingResults();
+      expect(results).toHaveLength(2);
+
+      const bash1 = results.find((r) => r.id === 'bash1');
+      const bash2 = results.find((r) => r.id === 'bash2');
+
+      expect(bash1!.result).toContain('Error: command failed');
+      expect(bash2!.result).toContain('Cancelled: sibling Bash command failed');
+    });
+
+    it('should NOT cancel read-only tools when Bash fails', async () => {
+      const executor = new StreamingToolExecutor();
+
+      // Bash tool will fail
+      executor.addTool('bash1', 'run_shell', {}, bashSafety, async () => {
+        throw new Error('bash error');
+      });
+      // Read-only tool should still execute
+      executor.addTool('read1', 'read_file', {}, readOnlySafety, async () => {
+        return 'file content';
+      });
+
+      const results = await executor.getRemainingResults();
+      expect(results).toHaveLength(2);
+
+      const readResult = results.find((r) => r.id === 'read1');
+      expect(readResult!.result).toBe('file content');
+    });
+  });
+
+  describe('execution timing', () => {
+    it('should report execution timing', async () => {
+      const executor = new StreamingToolExecutor();
+
+      executor.addTool('t1', 'read_file', {}, readOnlySafety, async () => {
+        await new Promise((r) => setTimeout(r, 20));
+        return 'done';
+      });
+
+      await executor.getRemainingResults();
+      const timing = executor.getExecutionTiming();
+
+      expect(timing.wallClockMs).toBeGreaterThanOrEqual(0);
+      expect(timing.sumIndividualMs).toBeGreaterThanOrEqual(0);
+      expect(timing.parallelismBenefit).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should show parallelism benefit > 1 for concurrent tools', async () => {
+      const executor = new StreamingToolExecutor();
+
+      executor.addTool('t1', 'read_file', {}, readOnlySafety, async () => {
+        await new Promise((r) => setTimeout(r, 50));
+        return 'file1';
+      });
+      executor.addTool('t2', 'grep_search', {}, readOnlySafety, async () => {
+        await new Promise((r) => setTimeout(r, 50));
+        return 'search1';
+      });
+
+      await executor.getRemainingResults();
+      const timing = executor.getExecutionTiming();
+
+      // Sum of individual times should be >= 100ms (50+50)
+      // Wall clock should be ~50ms (parallel)
+      // So benefit should be > 1
+      expect(timing.sumIndividualMs).toBeGreaterThanOrEqual(80); // Allow some variance
+      expect(timing.parallelismBenefit).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should return default timing when no tools executed', () => {
+      const executor = new StreamingToolExecutor();
+      const timing = executor.getExecutionTiming();
+      expect(timing.wallClockMs).toBe(0);
+      expect(timing.parallelismBenefit).toBe(1);
     });
   });
 
