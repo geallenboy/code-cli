@@ -231,3 +231,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 ### Phase 8: 上下文工程深化 (v3)
 
 - [Task 40-42: Phase 8 总结](./40-phase8-context-cache.md)
+
+### Phase 9: 技能与任务 (v3)
+
+- [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
