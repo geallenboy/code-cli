@@ -28,12 +28,12 @@
 /task run task-1713456789    # 执行任务（spawn 子 Agent）
 ```
 
-文件级存储（`~/.mini-claude/tasks/`），支持依赖检查和原子 claiming。
+文件级存储（一个 JSON 一个任务）+ 依赖检查 + 原子 claiming（文件锁）。
 
 ### Task 46: 并发执行增强
 
 - `Promise.allSettled`：单个工具失败不阻塞其他并发工具
-- 级联中止：Bash 失败取消兄弟 Bash，但不取消 read-only 工具
+- 级联中止：Bash 失败 → 取消兄弟 Bash，不取消 read-only
 - 执行计时：报告 wall-clock vs sum，显示并行收益
 
 ## 测试覆盖
