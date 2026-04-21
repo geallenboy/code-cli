@@ -227,3 +227,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 | Git 标签 | v0.1.0 → v1.0.0 (7 个) |
 | Phase | 7 |
 | Task | 39 |
+
+### Phase 8: 上下文工程深化 (v3)
+
+- [Task 40-42: Phase 8 总结](./40-phase8-context-cache.md)
