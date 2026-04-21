@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 703 个单元测试
+pnpm test                      # 742 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -43,6 +43,10 @@ bash scripts/e2e-test.sh       # 27 个端到端测试
 | Phase 9 | `phase-9/skills-tasks` | v1.2.0 | 技能系统 + 任务管理 |
 | Phase 10 | `phase-10/production` | v2.0.0 | 并发增强 + Bash AST + Web 工具 + Markdown |
 | Phase 11 | `phase-11/mcp-protocol` | v2.1.0 | MCP 协议支持（接入外部工具） |
+| Phase 12 | `phase-12/coordinator-swarm` | v2.2.0 | Coordinator + Swarm 多 Agent |
+| Phase 13 | `phase-13/tree-sitter-ast` | v2.3.0 | Bash AST 增强安全分析 (23 检查) |
+| Phase 14 | `phase-14/react-ink-ui` | v2.4.0 | 组件化终端 UI |
+| Phase 15 | `phase-15/extended-thinking` | v3.0.0 | Extended Thinking + Structured Output |
 
 ## 技术栈
 
@@ -187,7 +191,7 @@ xiaomi-code/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 703 个单元测试
+pnpm test               # 运行 742 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -236,16 +240,16 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 703 |
+| 单元测试 | 742 |
 | 端到端测试 | 27 |
-| 源文件 | 30+ |
+| 源文件 | 40+ |
 | 工具 | 6 + agent + MCP |
 | 提供商 | 5 |
-| 开发文档 | 23 篇 |
+| 开发文档 | 27 篇 |
 | 测试文档 | 9 篇 |
-| Git 标签 | v0.1.0 → v2.1.0 (11 个) |
-| Phase | 11 |
-| Task | 55 |
+| Git 标签 | v0.1.0 → v3.0.0 (15 个) |
+| Phase | 15 |
+| Task | 67 |
 
 ### Phase 8: 上下文工程深化 (v1.1.0)
 
@@ -274,3 +278,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 ### Phase 14: 组件化终端 UI (v2.4.0)
 
 - [Task 61-63: Ink 组件 + chalk 降级](./61-phase14-ink-ui.md)
+
+### Phase 15: Extended Thinking + Structured Output (v3.0.0)
+
+- [Task 64-67: Thinking + JSON 输出](./64-phase15-thinking-structured.md)
