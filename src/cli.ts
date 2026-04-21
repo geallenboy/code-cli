@@ -41,6 +41,8 @@ export function parseArgs(): CliArgs {
     mcp: false,
     coordinator: false,
     swarm: false,
+    noThinking: false,
+    json: false,
   };
 
   const positional: string[] = [];
@@ -68,6 +70,15 @@ export function parseArgs(): CliArgs {
         break;
       case '--swarm':
         result.swarm = true;
+        break;
+      case '--thinking-budget':
+        result.thinkingBudget = parseInt(args[++i] ?? '10000', 10);
+        break;
+      case '--no-thinking':
+        result.noThinking = true;
+        break;
+      case '--json':
+        result.json = true;
         break;
       default:
         if (!arg.startsWith('--')) {

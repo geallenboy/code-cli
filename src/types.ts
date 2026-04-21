@@ -83,6 +83,12 @@ export interface CliArgs {
   coordinator: boolean;
   /** 启用 Swarm 模式 */
   swarm: boolean;
+  /** Thinking budget（tokens） */
+  thinkingBudget?: number;
+  /** 禁用 thinking */
+  noThinking: boolean;
+  /** 启用 JSON 输出 */
+  json: boolean;
 }
 
 // ===== 双层架构类型 (Phase 4) =====
