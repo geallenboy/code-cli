@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 661 个单元测试
+pnpm test                      # 703 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -187,7 +187,7 @@ xiaomi-code/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 661 个单元测试
+pnpm test               # 运行 703 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -236,7 +236,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 661 |
+| 单元测试 | 703 |
 | 端到端测试 | 27 |
 | 源文件 | 30+ |
 | 工具 | 6 + agent + MCP |
@@ -270,3 +270,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 ### Phase 13: Bash AST 增强安全分析 (v2.3.0)
 
 - [Task 59-60: 23 个安全检查 + AST 解析](./59-phase13-tree-sitter-ast.md)
+
+### Phase 14: 组件化终端 UI (v2.4.0)
+
+- [Task 61-63: Ink 组件 + chalk 降级](./61-phase14-ink-ui.md)
