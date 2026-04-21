@@ -2,7 +2,7 @@
  * 会话持久化管理
  *
  * 将对话历史保存到磁盘，支持会话恢复。
- * 存储路径：~/.gearcode/sessions/
+ * 存储路径：~/.code-cli/sessions/
  *
  * 参考 Claude Code: 会话管理机制
  * 简化：JSON 文件存储代替数据库
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { SessionData } from './types.js';
 
-const SESSIONS_DIR = join(homedir(), '.gearcode', 'sessions');
+const SESSIONS_DIR = join(homedir(), '.code-cli', 'sessions');
 
 /**
  * 确保会话目录存在

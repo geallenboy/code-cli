@@ -106,7 +106,7 @@ export function executeShellCommand(command: string, timeout = 30_000): string {
 
 Claude Code 的工具系统（`src/Tool.ts` + `src/tools.ts`）是整个架构中最复杂的部分之一：
 
-| 特性 | Claude Code | GearCode |
+| 特性 | Claude Code | Code CLI |
 |------|-------------|------------------|
 | 工具数量 | 66+ | 3（Phase 1）→ 6（Phase 2） |
 | 声明方式 | `Tool` 泛型接口 + `buildTool()` 工厂 | AI SDK `tool()` + Zod |
@@ -163,10 +163,10 @@ node -e "
 # 测试 write_file — 创建文件
 node -e "
   import('./dist/tools/editor.js').then(m => {
-    console.log(m.writeFile('/tmp/test-gearcode.txt', 'hello world'));
+    console.log(m.writeFile('/tmp/test-code-cli.txt', 'hello world'));
   });
 "
-# 预期：File written: /tmp/test-gearcode.txt (1 lines)
+# 预期：File written: /tmp/test-code-cli.txt (1 lines)
 
 # 测试 run_shell — 执行命令
 node -e "

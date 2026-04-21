@@ -11,7 +11,7 @@
 ```
 src/mcp/
 ├── client.ts      # MCP 客户端（stdio transport + JSON-RPC 2.0）
-├── config.ts      # 配置加载（~/.gearcode/mcp.json）
+├── config.ts      # 配置加载（~/.code-cli/mcp.json）
 ├── converter.ts   # MCP tool schema → AI SDK tool() 转换
 └── index.ts       # McpManager + 公共 API
 ```
@@ -38,7 +38,7 @@ client.disconnect();
 
 ### 2. 配置加载 (`src/mcp/config.ts`)
 
-从 `~/.gearcode/mcp.json` 加载服务器配置：
+从 `~/.code-cli/mcp.json` 加载服务器配置：
 
 ```json
 {

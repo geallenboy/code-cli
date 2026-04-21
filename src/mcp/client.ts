@@ -110,7 +110,7 @@ export class McpClient extends EventEmitter {
     await this.sendRequest('initialize', {
       protocolVersion: '2024-11-05',
       capabilities: {},
-      clientInfo: { name: 'gearcode', version: '2.0.0' },
+      clientInfo: { name: 'code-cli', version: '2.0.0' },
     });
 
     // Send initialized notification

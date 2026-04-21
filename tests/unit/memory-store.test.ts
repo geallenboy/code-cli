@@ -2,7 +2,7 @@
  * 记忆存储层单元测试
  *
  * 测试 createMemory、listMemories、loadMemory、buildMemoryIndex 的核心行为。
- * 使用临时目录避免污染用户的 ~/.gearcode/memory/。
+ * 使用临时目录避免污染用户的 ~/.code-cli/memory/。
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,7 +17,7 @@ describe('memory store', () => {
     vi.resetModules();
     tempDir = join(
       tmpdir(),
-      `gearcode-mem-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-mem-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir, { recursive: true });
 
@@ -137,7 +137,7 @@ describe('parseFrontmatter', () => {
     vi.resetModules();
     const tempDir2 = join(
       tmpdir(),
-      `gearcode-fm-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-fm-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir2, { recursive: true });
     vi.doMock('node:os', () => ({ homedir: () => tempDir2 }));
@@ -156,7 +156,7 @@ describe('parseFrontmatter', () => {
     vi.resetModules();
     const tempDir2 = join(
       tmpdir(),
-      `gearcode-fm-test2-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-fm-test2-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir2, { recursive: true });
     vi.doMock('node:os', () => ({ homedir: () => tempDir2 }));
@@ -173,7 +173,7 @@ describe('parseFrontmatter', () => {
     vi.resetModules();
     const tempDir2 = join(
       tmpdir(),
-      `gearcode-fm-test3-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-fm-test3-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir2, { recursive: true });
     vi.doMock('node:os', () => ({ homedir: () => tempDir2 }));

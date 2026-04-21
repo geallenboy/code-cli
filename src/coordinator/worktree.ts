@@ -34,7 +34,7 @@ const SLUG_PATTERN = /^[a-zA-Z0-9._/-]+$/;
  * Git Worktree 管理器
  *
  * 管理 worktree 的创建、查询和清理。
- * 所有 worktree 创建在 .gearcode/worktrees/ 目录下。
+ * 所有 worktree 创建在 .code-cli/worktrees/ 目录下。
  */
 export class WorktreeManager {
   private readonly repoRoot: string;
@@ -43,7 +43,7 @@ export class WorktreeManager {
 
   constructor(repoRoot?: string) {
     this.repoRoot = repoRoot ?? process.cwd();
-    this.worktreeBase = join(this.repoRoot, '.gearcode', 'worktrees');
+    this.worktreeBase = join(this.repoRoot, '.code-cli', 'worktrees');
   }
 
   /**

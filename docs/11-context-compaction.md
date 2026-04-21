@@ -42,7 +42,7 @@ if (shouldCompact(this.totalInputTokens, this._config.effectiveContextWindow)) {
 
 ## 对应 Claude Code 的概念
 
-| 级别 | Claude Code | GearCode |
+| 级别 | Claude Code | Code CLI |
 |------|-------------|------------------|
 | 1 | Snip（零成本，删除旧工具结果） | — |
 | 2 | Microcompact（近零成本，压缩单个结果） | — |

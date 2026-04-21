@@ -26,7 +26,7 @@ describe('recallRelevantMemories', () => {
     vi.resetModules();
     tempDir = join(
       tmpdir(),
-      `gearcode-recall-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-recall-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir, { recursive: true });
 

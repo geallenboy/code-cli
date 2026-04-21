@@ -37,7 +37,7 @@ listFiles('*.ts', 'src/')
 
 ## 对应 Claude Code 的概念
 
-| 特性 | Claude Code | GearCode |
+| 特性 | Claude Code | Code CLI |
 |------|-------------|------------------|
 | 搜索引擎 | ripgrep（Rust） | 系统 grep |
 | 文件列表 | glob 库 | 手动递归 + 后缀匹配 |

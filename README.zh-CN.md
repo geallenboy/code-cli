@@ -1,4 +1,4 @@
-# GearCode
+# Code CLI
 
 一个终端 AI 编程助手，灵感来自 Claude Code。在命令行中与 AI 对话，它能读写文件、编辑代码、执行命令、搜索网页、协调多 Agent 工作流。
 
@@ -19,13 +19,13 @@
 ## 安装
 
 ```bash
-npm install -g gearcode
+npm install -g code-cli
 ```
 
 或直接运行：
 
 ```bash
-npx gearcode
+npx code-cli
 ```
 
 需要 Node.js 18+。
@@ -55,9 +55,9 @@ cp .env.example .env
 ### 交互模式（REPL）
 
 ```bash
-gearcode                          # 默认提供商（Anthropic）
-gearcode --provider deepseek      # 使用 DeepSeek
-gearcode --provider openai        # 使用 OpenAI
+code-cli                          # 默认提供商（Anthropic）
+code-cli --provider deepseek      # 使用 DeepSeek
+code-cli --provider openai        # 使用 OpenAI
 ```
 
 然后直接对话：
@@ -72,8 +72,8 @@ gearcode --provider openai        # 使用 OpenAI
 ### 一次性模式
 
 ```bash
-gearcode "读取 package.json 告诉我版本号"
-gearcode --provider deepseek "解释 src/index.ts 做了什么"
+code-cli "读取 package.json 告诉我版本号"
+code-cli --provider deepseek "解释 src/index.ts 做了什么"
 ```
 
 ### 命令行参数
@@ -84,7 +84,7 @@ gearcode --provider deepseek "解释 src/index.ts 做了什么"
 | `--model <name>` | 覆盖默认模型（如 `gpt-4o-mini`、`claude-haiku-3`） |
 | `--yolo` | 跳过所有确认提示（危险命令直接执行） |
 | `--resume` | 恢复上次会话的对话历史 |
-| `--mcp` | 启用 MCP 协议（从 `~/.gearcode/mcp.json` 加载服务器） |
+| `--mcp` | 启用 MCP 协议（从 `~/.code-cli/mcp.json` 加载服务器） |
 | `--coordinator` | 启动 Coordinator 模式（编排子 Agent） |
 | `--swarm` | 启动 Swarm 模式（对等多 Agent 协作） |
 | `--thinking-budget <n>` | 设置 Extended Thinking token 预算（默认 10000，仅 Anthropic） |
@@ -125,7 +125,7 @@ gearcode --provider deepseek "解释 src/index.ts 做了什么"
 
 ## MCP（外部工具）
 
-通过 Model Context Protocol 接入外部工具。创建 `~/.gearcode/mcp.json`：
+通过 Model Context Protocol 接入外部工具。创建 `~/.code-cli/mcp.json`：
 
 ```json
 {
@@ -147,7 +147,7 @@ gearcode --provider deepseek "解释 src/index.ts 做了什么"
 启动时加 `--mcp`：
 
 ```bash
-gearcode --mcp
+code-cli --mcp
 ```
 
 MCP 工具和内置工具使用相同的权限系统。
@@ -162,7 +162,7 @@ Agent 能跨会话记住信息。用 `/remember` 保存：
 > /remember 代码风格偏好函数式，少用 class
 ```
 
-记忆存储在 `~/.gearcode/memory/`，相关时自动召回。
+记忆存储在 `~/.code-cli/memory/`，相关时自动召回。
 
 ## 计划模式
 
@@ -188,12 +188,12 @@ Agent 能跨会话记住信息。用 `/remember` 保存：
 - Docker 逃逸（`--privileged`、`-v /:/host`）
 - 还有 17 项更多检查...
 
-非 yolo 模式下，危险命令需要明确确认。权限系统支持在 `~/.gearcode/settings.json` 中配置 allow/deny 规则。
+非 yolo 模式下，危险命令需要明确确认。权限系统支持在 `~/.code-cli/settings.json` 中配置 allow/deny 规则。
 
 ## 目录结构
 
 ```
-~/.gearcode/
+~/.code-cli/
 ├── mcp.json          # MCP 服务器配置
 ├── settings.json     # 权限规则
 ├── memory/           # 跨会话记忆

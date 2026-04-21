@@ -1,4 +1,4 @@
-# GearCode — 开发文档
+# Code CLI — 开发文档
 
 > 从零构建一个迷你版 Claude Code 的完整开发记录。每个任务记录了做了什么、为什么这样做、以及对应 Claude Code 的哪些概念。
 
@@ -119,7 +119,7 @@ bash scripts/e2e-test.sh       # 27 个端到端测试
 ## 项目结构
 
 ```
-gearcode/
+code-cli/
 ├── src/
 │   ├── index.ts                  # CLI 入口点
 │   ├── cli.ts                    # 命令行参数解析 + REPL 循环
@@ -150,7 +150,7 @@ gearcode/
 │   ├── mcp/                      # MCP 协议客户端
 │   │   ├── index.ts              # McpManager + 公共 API
 │   │   ├── client.ts             # stdio transport + JSON-RPC 2.0
-│   │   ├── config.ts             # 配置加载（~/.gearcode/mcp.json）
+│   │   ├── config.ts             # 配置加载（~/.code-cli/mcp.json）
 │   │   └── converter.ts          # MCP schema → AI SDK tool 转换
 │   ├── coordinator/              # Coordinator 多 Agent 模式
 │   │   ├── index.ts              # 公共 API

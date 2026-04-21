@@ -1,11 +1,11 @@
 {
-  "name": "gearcode",
+  "name": "code-cli",
   "version": "3.0.0",
   "description": "A minimal CLI programming agent inspired by Claude Code",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gearcode": "./dist/index.js"
+    "code-cli": "./dist/index.js"
   },
   "files": [
     "dist/",

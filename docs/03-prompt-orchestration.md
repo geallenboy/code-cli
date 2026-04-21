@@ -85,7 +85,7 @@ Phase 1 仅加载当前目录的 CLAUDE.md，Phase 3 会扩展为从当前目录
 
 Claude Code 的 Prompt 编排（`src/context.ts` 190 行 + `src/services/api/claude.ts` 3,419 行）远比 Mini 版复杂：
 
-| 特性 | Claude Code | GearCode |
+| 特性 | Claude Code | Code CLI |
 |------|-------------|------------------|
 | 组装方式 | 缓存感知分层组装 | 简单模板替换 |
 | 缓存策略 | 静态内容 prefix caching | 无缓存 |

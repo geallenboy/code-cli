@@ -1,4 +1,4 @@
-# GearCode
+# Code CLI
 
 A terminal-based AI programming assistant inspired by Claude Code. Chat with an AI that can read, write, and edit your files, run shell commands, search the web, and coordinate multi-agent workflows — all from the command line.
 
@@ -19,13 +19,13 @@ A terminal-based AI programming assistant inspired by Claude Code. Chat with an 
 ## Install
 
 ```bash
-npm install -g gearcode
+npm install -g code-cli
 ```
 
 Or run directly:
 
 ```bash
-npx gearcode
+npx code-cli
 ```
 
 Requires Node.js 18+.
@@ -55,9 +55,9 @@ cp .env.example .env
 ### Interactive mode (REPL)
 
 ```bash
-gearcode                          # Default provider (Anthropic)
-gearcode --provider deepseek      # Use DeepSeek
-gearcode --provider openai        # Use OpenAI
+code-cli                          # Default provider (Anthropic)
+code-cli --provider deepseek      # Use DeepSeek
+code-cli --provider openai        # Use OpenAI
 ```
 
 Then just chat:
@@ -72,8 +72,8 @@ Then just chat:
 ### One-shot mode
 
 ```bash
-gearcode "Read package.json and tell me the version"
-gearcode --provider deepseek "Explain what src/index.ts does"
+code-cli "Read package.json and tell me the version"
+code-cli --provider deepseek "Explain what src/index.ts does"
 ```
 
 ### CLI flags
@@ -84,7 +84,7 @@ gearcode --provider deepseek "Explain what src/index.ts does"
 | `--model <name>` | Override the default model (e.g. `gpt-4o-mini`, `claude-haiku-3`) |
 | `--yolo` | Skip all confirmation prompts (dangerous commands run without asking) |
 | `--resume` | Restore the last session's conversation history |
-| `--mcp` | Enable MCP protocol (loads servers from `~/.gearcode/mcp.json`) |
+| `--mcp` | Enable MCP protocol (loads servers from `~/.code-cli/mcp.json`) |
 | `--coordinator` | Start in Coordinator mode (orchestrate sub-agents) |
 | `--swarm` | Start in Swarm mode (peer-to-peer multi-agent) |
 | `--thinking-budget <n>` | Set Extended Thinking token budget (default: 10000, Anthropic only) |
@@ -125,7 +125,7 @@ gearcode --provider deepseek "Explain what src/index.ts does"
 
 ## MCP (External Tools)
 
-Connect external tools via the Model Context Protocol. Create `~/.gearcode/mcp.json`:
+Connect external tools via the Model Context Protocol. Create `~/.code-cli/mcp.json`:
 
 ```json
 {
@@ -147,7 +147,7 @@ Connect external tools via the Model Context Protocol. Create `~/.gearcode/mcp.j
 Then start with `--mcp`:
 
 ```bash
-gearcode --mcp
+code-cli --mcp
 ```
 
 MCP tools go through the same permission system as built-in tools.
@@ -162,7 +162,7 @@ The agent remembers things across sessions. Use `/remember` to save notes:
 > /remember Prefer functional style over classes
 ```
 
-Memories are stored in `~/.gearcode/memory/` as Markdown files and automatically recalled when relevant.
+Memories are stored in `~/.code-cli/memory/` as Markdown files and automatically recalled when relevant.
 
 ## Plan Mode
 
@@ -188,12 +188,12 @@ The agent checks every shell command against 23 static security rules before exe
 - Docker escape (`--privileged`, `-v /:/host`)
 - And 17 more...
 
-In non-yolo mode, dangerous commands require explicit confirmation. The permission system supports allow/deny rules in `~/.gearcode/settings.json`.
+In non-yolo mode, dangerous commands require explicit confirmation. The permission system supports allow/deny rules in `~/.code-cli/settings.json`.
 
 ## Project Structure
 
 ```
-~/.gearcode/
+~/.code-cli/
 ├── mcp.json          # MCP server configuration
 ├── settings.json     # Permission rules
 ├── memory/           # Cross-session memories

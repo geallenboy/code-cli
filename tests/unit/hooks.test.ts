@@ -20,7 +20,7 @@ describe('HookSystem', () => {
     vi.resetModules();
     tempDir = join(
       tmpdir(),
-      `gearcode-hooks-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `code-cli-hooks-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir, { recursive: true });
 
@@ -43,7 +43,7 @@ describe('HookSystem', () => {
   }
 
   function writeSettings(settings: object): void {
-    const settingsDir = join(tempDir, '.gearcode');
+    const settingsDir = join(tempDir, '.code-cli');
     mkdirSync(settingsDir, { recursive: true });
     writeFileSync(join(settingsDir, 'settings.json'), JSON.stringify(settings), 'utf-8');
   }
@@ -88,7 +88,7 @@ describe('HookSystem', () => {
     });
 
     it('should handle malformed settings file', async () => {
-      const settingsDir = join(tempDir, '.gearcode');
+      const settingsDir = join(tempDir, '.code-cli');
       mkdirSync(settingsDir, { recursive: true });
       writeFileSync(join(settingsDir, 'settings.json'), 'not valid json{{{', 'utf-8');
 

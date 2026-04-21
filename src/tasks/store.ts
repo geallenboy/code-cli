@@ -1,7 +1,7 @@
 /**
  * 任务存储与管理
  *
- * JSON 文件存储到 ~/.gearcode/tasks/，每个任务一个文件。
+ * JSON 文件存储到 ~/.code-cli/tasks/，每个任务一个文件。
  * 支持 CRUD、依赖检查、原子 claiming（文件锁）。
  *
  * 参考 Claude Code: src/tasks/ 系统
@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, existsSync, unlink
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const TASKS_DIR = join(homedir(), '.gearcode', 'tasks');
+const TASKS_DIR = join(homedir(), '.code-cli', 'tasks');
 
 export interface Task {
   id: string;

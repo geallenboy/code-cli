@@ -36,7 +36,7 @@ export async function webFetch(url: string): Promise<string> {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'gearcode/1.0',
+        'User-Agent': 'code-cli/1.0',
         Accept: 'text/html, text/plain, application/json',
       },
     });
@@ -81,7 +81,7 @@ export async function webSearch(query: string): Promise<string> {
     const encoded = encodeURIComponent(query);
     const url = `https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'gearcode/1.0' },
+      headers: { 'User-Agent': 'code-cli/1.0' },
     });
 
     if (!response.ok) {

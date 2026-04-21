@@ -39,10 +39,10 @@ export class PermissionSystem {
 
   /** Load rules from user settings, project settings */
   private loadRules(): void {
-    // User settings: ~/.gearcode/settings.json
-    this.loadFromFile(join(homedir(), '.gearcode', 'settings.json'), 'user');
-    // Project settings: .gearcode/settings.json
-    this.loadFromFile(join(process.cwd(), '.gearcode', 'settings.json'), 'project');
+    // User settings: ~/.code-cli/settings.json
+    this.loadFromFile(join(homedir(), '.code-cli', 'settings.json'), 'user');
+    // Project settings: .code-cli/settings.json
+    this.loadFromFile(join(process.cwd(), '.code-cli', 'settings.json'), 'project');
   }
 
   private loadFromFile(path: string, source: string): void {

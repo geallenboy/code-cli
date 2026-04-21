@@ -141,7 +141,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
       rl.once('close', () => reject(new Error('readline closed')));
     });
 
-  console.log(chalk.green('GearCode') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
+  console.log(chalk.green('Code CLI') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
   console.log();
 
   while (true) {
@@ -201,7 +201,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
           }
           case '/mcp': {
             if (!mcpManager || mcpManager.size === 0) {
-              console.log(chalk.dim('No MCP servers connected. Use --mcp flag and configure ~/.gearcode/mcp.json'));
+              console.log(chalk.dim('No MCP servers connected. Use --mcp flag and configure ~/.code-cli/mcp.json'));
             } else {
               const servers = mcpManager.getConnectedServers();
               console.log(chalk.cyan(`MCP Servers (${servers.length}):`));

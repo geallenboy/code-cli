@@ -1,5 +1,5 @@
 /**
- * Custom error class hierarchy for GearCode.
+ * Custom error class hierarchy for Code CLI.
  *
  * Design philosophy: "Errors are data, not exceptions."
  * Tool execution errors are converted to tool results and fed back to the model,

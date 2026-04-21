@@ -32,7 +32,7 @@ const { createTask, listTasks, loadTask, updateTask, claimTask, completeTask, ca
 describe('Task Management System', () => {
   beforeEach(() => {
     // Clean the tasks directory before each test
-    const tasksDir = join(BASE_TEMP, '.gearcode', 'tasks');
+    const tasksDir = join(BASE_TEMP, '.code-cli', 'tasks');
     rmSync(tasksDir, { recursive: true, force: true });
     mkdirSync(tasksDir, { recursive: true });
   });
@@ -174,7 +174,7 @@ describe('Task Management System', () => {
     it('should remove lock file after completion', () => {
       const task = createTask('Lock cleanup');
       claimTask(task.id);
-      const lockPath = join(BASE_TEMP, '.gearcode', 'tasks', `${task.id}.lock`);
+      const lockPath = join(BASE_TEMP, '.code-cli', 'tasks', `${task.id}.lock`);
       expect(existsSync(lockPath)).toBe(true);
       completeTask(task.id, 'Done');
       expect(existsSync(lockPath)).toBe(false);

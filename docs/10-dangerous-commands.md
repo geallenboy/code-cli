@@ -46,7 +46,7 @@ const DANGEROUS_PATTERNS = [
 
 ## 对应 Claude Code 的概念
 
-| 层级 | Claude Code | GearCode |
+| 层级 | Claude Code | Code CLI |
 |------|-------------|------------------|
 | 1 | 权限规则匹配（allowedTools） | — |
 | 2 | Bash AST 分析（tree-sitter） | 正则模式匹配 |
