@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { getBuiltinSkills, parseFrontmatter } from '../../src/skills/index.js';
@@ -136,7 +136,6 @@ Do something useful.`,
 
       // We can't easily test loadSkills directly since it uses a hardcoded path,
       // but we can test parseFrontmatter which is the core logic
-      const { readFileSync } = require('node:fs');
       const raw = readFileSync(join(tempDir, 'test-skill.md'), 'utf-8');
       const fm = parseFrontmatter(raw);
       expect(fm.name).toBe('test-skill');

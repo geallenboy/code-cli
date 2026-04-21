@@ -9,15 +9,7 @@
  * 参考 Claude Code: src/services/compact/ 中的 context collapse 逻辑
  */
 
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-
-/** 折叠段描述 */
-interface CollapseSegment {
-  startIdx: number;
-  endIdx: number;
-  summary: string;
-  isActive: boolean;
-}
+import type { ModelMessage, ToolCallPart } from 'ai';
 
 /** 最小折叠阈值（字符数），低于此值不值得折叠 */
 const MIN_COLLAPSE_CHARS = 2000;
