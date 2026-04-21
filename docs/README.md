@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 578 个单元测试
+pnpm test                      # 623 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -148,6 +148,15 @@ xiaomi-code/
 │   │   ├── client.ts             # stdio transport + JSON-RPC 2.0
 │   │   ├── config.ts             # 配置加载（~/.xiaomi-code/mcp.json）
 │   │   └── converter.ts          # MCP schema → AI SDK tool 转换
+│   ├── coordinator/              # Coordinator 多 Agent 模式
+│   │   ├── index.ts              # 公共 API
+│   │   ├── coordinator.ts        # 4 阶段工作流
+│   │   └── worktree.ts           # Git Worktree 隔离
+│   ├── swarm/                    # Swarm 对等协作模式
+│   │   ├── index.ts              # 公共 API
+│   │   ├── swarm.ts              # Swarm 管理器
+│   │   ├── mailbox.ts            # 消息邮箱系统
+│   │   └── agent.ts              # Swarm Agent 实例
 │   └── tools/                    # 工具系统
 │       ├── index.ts              # 工具注册表 + 安全语义元数据
 │       ├── file-ops.ts           # read_file + grep_search + list_files
@@ -178,7 +187,7 @@ xiaomi-code/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 578 个单元测试
+pnpm test               # 运行 623 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -227,7 +236,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 578 |
+| 单元测试 | 623 |
 | 端到端测试 | 27 |
 | 源文件 | 30+ |
 | 工具 | 6 + agent + MCP |
@@ -253,3 +262,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 ### Phase 11: MCP 协议支持 (v2.1.0)
 
 - [Task 54-55: MCP 协议客户端](./54-phase11-mcp.md)
+
+### Phase 12: Coordinator/Swarm 多 Agent (v2.2.0)
+
+- [Task 56-58: Coordinator + Swarm 模式](./56-phase12-coordinator-swarm.md)

@@ -49,6 +49,18 @@ async function main(): Promise<void> {
 
   console.log(chalk.dim(`Provider: ${args.provider} | Model: ${model}`));
 
+  // Handle --coordinator mode
+  if (args.coordinator) {
+    console.log(chalk.cyan('[COORDINATOR MODE] Agent will orchestrate sub-agents'));
+    console.log(chalk.dim('  4-phase workflow: Research → Synthesize → Implement → Verify'));
+  }
+
+  // Handle --swarm mode
+  if (args.swarm) {
+    console.log(chalk.cyan('[SWARM MODE] Multi-agent collaboration enabled'));
+    console.log(chalk.dim('  Agents communicate via shared mailbox'));
+  }
+
   // Handle --mcp: initialize MCP servers
   let mcpManager: McpManager | undefined;
   if (args.mcp) {
