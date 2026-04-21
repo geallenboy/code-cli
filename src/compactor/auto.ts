@@ -9,6 +9,7 @@
  */
 
 import { generateText, type LanguageModel, type ModelMessage } from 'ai';
+import { extractRecentlyEditedFiles, buildRecoveryMessages } from './recovery.js';
 
 const COMPACT_THRESHOLD = 0.80; // 80% of context window
 const MAX_CONSECUTIVE_FAILURES = 3;
@@ -98,6 +99,11 @@ ${toSummarize.map(m => `[${m.role}]: ${typeof m.content === 'string' ? m.content
     if (lastUserMsg && !recentExchanges.includes(lastUserMsg)) {
       compressed.push(lastUserMsg);
     }
+
+    // Post-compression recovery: re-read recently edited files
+    const editedFiles = extractRecentlyEditedFiles(messages);
+    const recoveryMsgs = buildRecoveryMessages(editedFiles);
+    compressed.push(...recoveryMsgs);
 
     return { messages: compressed, failed: false };
   } catch {

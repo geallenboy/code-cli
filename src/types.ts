@@ -86,7 +86,7 @@ export type StreamEvent =
   | { type: 'text'; text: string }
   | { type: 'tool_call'; toolName: string; input: Record<string, unknown> }
   | { type: 'tool_result'; toolName: string; result: string }
-  | { type: 'compact'; level: 'snip' | 'micro' | 'auto'; tokensFreed: number }
+  | { type: 'compact'; level: 'snip' | 'micro' | 'collapse' | 'auto'; tokensFreed: number }
   | { type: 'error'; error: Error; recoverable: boolean }
   | { type: 'usage'; inputTokens: number; outputTokens: number };
 

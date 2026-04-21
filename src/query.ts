@@ -23,6 +23,7 @@ import type { StreamEvent, Terminal, ContinueReason } from './types.js';
 import { RETRYABLE_STATUS_CODES } from './types.js';
 import { snipCompact } from './compactor/snip.js';
 import { microCompact } from './compactor/micro.js';
+import { applyCollapse } from './compactor/collapse.js';
 import { shouldAutoCompact, autoCompact } from './compactor/auto.js';
 import { normalizeMessages } from './normalizer.js';
 
@@ -346,6 +347,17 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
         type: 'compact' as const,
         level: 'micro' as const,
         tokensFreed: microResult.tokensFreed,
+      };
+    }
+
+    // 2.5. Collapse — zero cost (projection-based folding)
+    const collapseResult = applyCollapse(state.messages);
+    if (collapseResult.tokensFreed > 0) {
+      state.messages = collapseResult.projected;
+      yield {
+        type: 'compact' as const,
+        level: 'collapse' as const,
+        tokensFreed: collapseResult.tokensFreed,
       };
     }
 

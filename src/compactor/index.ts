@@ -9,7 +9,9 @@
 
 export { snipCompact } from './snip.js';
 export { microCompact } from './micro.js';
+export { applyCollapse } from './collapse.js';
 export { shouldAutoCompact, autoCompact } from './auto.js';
+export { extractRecentlyEditedFiles, buildRecoveryMessages } from './recovery.js';
 
 // Re-export old names for backward compatibility
 export { shouldAutoCompact as shouldCompact } from './auto.js';
