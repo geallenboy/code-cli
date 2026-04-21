@@ -39,6 +39,8 @@ export function parseArgs(): CliArgs {
     yolo: false,
     resume: false,
     mcp: false,
+    coordinator: false,
+    swarm: false,
   };
 
   const positional: string[] = [];
@@ -60,6 +62,12 @@ export function parseArgs(): CliArgs {
         break;
       case '--mcp':
         result.mcp = true;
+        break;
+      case '--coordinator':
+        result.coordinator = true;
+        break;
+      case '--swarm':
+        result.swarm = true;
         break;
       default:
         if (!arg.startsWith('--')) {

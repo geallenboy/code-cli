@@ -79,6 +79,10 @@ export interface CliArgs {
   resume: boolean;
   /** 启用 MCP 工具加载 */
   mcp: boolean;
+  /** 启用 Coordinator 模式 */
+  coordinator: boolean;
+  /** 启用 Swarm 模式 */
+  swarm: boolean;
 }
 
 // ===== 双层架构类型 (Phase 4) =====
