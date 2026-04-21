@@ -18,6 +18,7 @@ import { Agent } from './agent.js';
 import { validateApiKey, getDefaultModel, getContextWindow } from './provider.js';
 import { ConfigurationError } from './errors.js';
 import { loadLatestSession } from './session.js';
+import { McpManager } from './mcp/index.js';
 import type { ModelMessage } from 'ai';
 
 async function main(): Promise<void> {
@@ -48,6 +49,24 @@ async function main(): Promise<void> {
 
   console.log(chalk.dim(`Provider: ${args.provider} | Model: ${model}`));
 
+  // Handle --mcp: initialize MCP servers
+  let mcpManager: McpManager | undefined;
+  if (args.mcp) {
+    mcpManager = new McpManager();
+    try {
+      await mcpManager.initialize();
+      const servers = mcpManager.getConnectedServers();
+      if (servers.length > 0) {
+        const totalTools = servers.reduce((sum, s) => sum + s.toolCount, 0);
+        console.log(chalk.dim(`MCP: ${servers.length} server(s) connected, ${totalTools} tool(s) available`));
+      } else {
+        console.log(chalk.dim('MCP: No servers configured or connected'));
+      }
+    } catch {
+      console.log(chalk.dim('MCP: Failed to initialize'));
+    }
+  }
+
   // Handle --resume: restore previous session
   if (args.resume) {
     const session = loadLatestSession();
@@ -69,7 +88,7 @@ async function main(): Promise<void> {
     }
   } else {
     // Interactive REPL mode
-    await runRepl(agent);
+    await runRepl(agent, mcpManager);
   }
 }
 

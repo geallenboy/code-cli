@@ -188,9 +188,10 @@ const listFilesTool = tool({
  * 危险命令，非 yolo 模式下需要用户确认。
  *
  * @param ctx - 工具上下文（可选，默认无确认）
+ * @param extraTools - 额外工具定义（如 MCP 工具），会合并到返回结果中
  * @returns 工具名到工具定义的映射
  */
-export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
+export function getToolDefinitions(ctx?: ToolContext, extraTools?: Record<string, Tool>): Record<string, Tool> {
   /**
    * run_shell 工具定义（带确认逻辑）
    *
@@ -240,6 +241,7 @@ export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
     web_fetch: webFetchTool,
     web_search: webSearchTool,
     write_file: writeFileTool,
+    ...extraTools,
   };
 }
 

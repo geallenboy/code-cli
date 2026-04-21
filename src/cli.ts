@@ -18,6 +18,7 @@ import { createPlanModeState, enterPlanMode } from './plan-mode.js';
 import { resetPromptCache } from './prompt.js';
 import { getBuiltinSkills, getSkillPrompt, loadSkills } from './skills/index.js';
 import { createTask, listTasks as listAllTasks, getProgressSummary } from './tasks/index.js';
+import type { McpManager } from './mcp/index.js';
 
 /**
  * 解析命令行参数。
@@ -37,6 +38,7 @@ export function parseArgs(): CliArgs {
     provider: 'anthropic',
     yolo: false,
     resume: false,
+    mcp: false,
   };
 
   const positional: string[] = [];
@@ -55,6 +57,9 @@ export function parseArgs(): CliArgs {
         break;
       case '--resume':
         result.resume = true;
+        break;
+      case '--mcp':
+        result.mcp = true;
         break;
       default:
         if (!arg.startsWith('--')) {
@@ -82,7 +87,7 @@ export function parseArgs(): CliArgs {
  *
  * @param agent - Agent 实例
  */
-export async function runRepl(agent: Agent): Promise<void> {
+export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<void> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -173,6 +178,18 @@ export async function runRepl(agent: Agent): Promise<void> {
           case '/rules': {
             console.log(chalk.cyan('Permission Rules:'));
             console.log(chalk.dim('  (No rules configured)'));
+            continue;
+          }
+          case '/mcp': {
+            if (!mcpManager || mcpManager.size === 0) {
+              console.log(chalk.dim('No MCP servers connected. Use --mcp flag and configure ~/.xiaomi-code/mcp.json'));
+            } else {
+              const servers = mcpManager.getConnectedServers();
+              console.log(chalk.cyan(`MCP Servers (${servers.length}):`));
+              for (const s of servers) {
+                console.log(chalk.dim(`  ${s.name} — ${s.toolCount} tools`));
+              }
+            }
             continue;
           }
           default:
