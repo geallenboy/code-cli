@@ -9,6 +9,7 @@
  */
 
 import chalk from 'chalk';
+import type { CacheStats } from './cache-tracker.js';
 
 /**
  * 获取工具对应的图标
@@ -120,4 +121,20 @@ export function printTokenBar(inputTokens: number, outputTokens: number, windowS
  */
 export function printCompactNotification(level: string, tokensFreed: number): void {
   console.log(chalk.dim(`  📦 Compacted (${level}): ~${tokensFreed.toLocaleString()} tokens freed`));
+}
+
+
+/**
+ * 打印缓存统计信息
+ *
+ * 显示 Prompt Cache 命中率和累计缓存 token 数。
+ * 用于 /cost 命令输出。
+ *
+ * @param stats - 缓存统计摘要
+ */
+export function printCacheStats(stats: CacheStats): void {
+  console.log(chalk.cyan(`Cache hit rate: ${stats.hitRate}%`));
+  console.log(chalk.cyan(
+    `Cache tokens: ${stats.totalCached.toLocaleString()} read + ${stats.totalCreated.toLocaleString()} created`,
+  ));
 }
