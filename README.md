@@ -1,4 +1,4 @@
-# mini-claude-code
+# xiaomi-code
 
 A minimal CLI programming agent inspired by Claude Code. Chat with an AI assistant that can read, write, and edit files, run shell commands, search the web, and manage your codebase — all from the terminal.
 
@@ -17,10 +17,10 @@ A minimal CLI programming agent inspired by Claude Code. Chat with an AI assista
 
 ```bash
 # Global install
-npm install -g mini-claude-code
+npm install -g xiaomi-code
 
 # Or run directly with npx
-npx mini-claude-code
+npx xiaomi-code
 ```
 
 Requires Node.js 18 or later.
@@ -39,7 +39,7 @@ export ANTHROPIC_API_KEY=your-key-here
 2. Start the agent:
 
 ```bash
-mini-claude
+xiaomi-code
 ```
 
 3. Chat naturally — ask it to read files, write code, run tests, or search the web.
@@ -80,7 +80,7 @@ MINI_CLAUDE_PROVIDER=deepseek
 ## CLI Options
 
 ```
-mini-claude [options]
+xiaomi-code [options]
 
 Options:
   --yolo          Skip all confirmation prompts

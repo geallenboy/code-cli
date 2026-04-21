@@ -2,7 +2,7 @@
  * 记忆存储层
  *
  * 将记忆存储为 Markdown + YAML frontmatter 格式的文件。
- * 存储路径：~/.mini-claude/memory/
+ * 存储路径：~/.xiaomi-code/memory/
  *
  * 参考 Claude Code: src/memdir/ 的存储机制
  * 简化：纯文件系统存储，无数据库
@@ -12,7 +12,7 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, existsSync } from 
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const MEMORY_DIR = join(homedir(), '.mini-claude', 'memory');
+const MEMORY_DIR = join(homedir(), '.xiaomi-code', 'memory');
 
 /** 记忆类型：封闭四分类 */
 export type MemoryType = 'user' | 'feedback' | 'project' | 'reference';

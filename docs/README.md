@@ -1,4 +1,4 @@
-# Mini Claude Code — 开发文档
+# Xiaomi Code — 开发文档
 
 > 从零构建一个迷你版 Claude Code 的完整开发记录。每个任务记录了做了什么、为什么这样做、以及对应 Claude Code 的哪些概念。
 
@@ -111,7 +111,7 @@ bash scripts/e2e-test.sh       # 27 个端到端测试
 ## 项目结构
 
 ```
-mini-claude-code/
+xiaomi-code/
 ├── src/
 │   ├── index.ts                  # CLI 入口点
 │   ├── cli.ts                    # 命令行参数解析 + REPL 循环

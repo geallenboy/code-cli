@@ -1,7 +1,7 @@
 /**
  * 任务存储与管理
  *
- * JSON 文件存储到 ~/.mini-claude/tasks/，每个任务一个文件。
+ * JSON 文件存储到 ~/.xiaomi-code/tasks/，每个任务一个文件。
  * 支持 CRUD、依赖检查、原子 claiming（文件锁）。
  *
  * 参考 Claude Code: src/tasks/ 系统
@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, existsSync, unlink
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const TASKS_DIR = join(homedir(), '.mini-claude', 'tasks');
+const TASKS_DIR = join(homedir(), '.xiaomi-code', 'tasks');
 
 export interface Task {
   id: string;

@@ -39,8 +39,8 @@ Memories (1):
 ### 7.4 记忆文件检查
 
 ```bash
-ls ~/.mini-claude/memory/
-cat ~/.mini-claude/memory/feedback-*.md
+ls ~/.xiaomi-code/memory/
+cat ~/.xiaomi-code/memory/feedback-*.md
 ```
 
 **预期**：Markdown 文件，包含 YAML frontmatter（type/description/created）
@@ -62,5 +62,5 @@ import('./dist/memory/store.js').then(m => {
 ### 7.6 清理
 
 ```bash
-rm -rf ~/.mini-claude/memory/
+rm -rf ~/.xiaomi-code/memory/
 ```

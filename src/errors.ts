@@ -1,5 +1,5 @@
 /**
- * Custom error class hierarchy for Mini Claude Code.
+ * Custom error class hierarchy for Xiaomi Code.
  *
  * Design philosophy: "Errors are data, not exceptions."
  * Tool execution errors are converted to tool results and fed back to the model,

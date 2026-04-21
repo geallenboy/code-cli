@@ -2,7 +2,7 @@
  * 会话持久化单元测试
  *
  * 测试 saveSession、loadSession、loadLatestSession 的核心行为。
- * 使用临时目录避免污染用户的 ~/.mini-claude/sessions/。
+ * 使用临时目录避免污染用户的 ~/.xiaomi-code/sessions/。
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,7 +17,7 @@ let tempDir: string;
 describe('session', () => {
   beforeEach(() => {
     vi.resetModules();
-    tempDir = join(tmpdir(), `mini-claude-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tempDir = join(tmpdir(), `xiaomi-code-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(tempDir, { recursive: true });
 
     // Mock os.homedir to redirect sessions to temp dir
@@ -106,7 +106,7 @@ describe('session', () => {
     const { loadSession } = await getSessionModule();
 
     // Write a corrupted JSON file
-    const sessionsDir = join(tempDir, '.mini-claude', 'sessions');
+    const sessionsDir = join(tempDir, '.xiaomi-code', 'sessions');
     mkdirSync(sessionsDir, { recursive: true });
     writeFileSync(join(sessionsDir, 'corrupted.json'), 'not valid json{{{', 'utf-8');
 

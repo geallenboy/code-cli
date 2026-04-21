@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 /** 计划文件存储目录 */
-const PLANS_DIR = join(homedir(), '.mini-claude', 'plans');
+const PLANS_DIR = join(homedir(), '.xiaomi-code', 'plans');
 
 /** 计划模式状态 */
 export interface PlanModeState {
@@ -103,7 +103,7 @@ export function isReadOnlyShellCommand(cmd: string): boolean {
 /**
  * 保存计划到文件
  *
- * 将计划文本保存到 ~/.mini-claude/plans/ 目录，
+ * 将计划文本保存到 ~/.xiaomi-code/plans/ 目录，
  * 文件名包含时间戳和计划摘要 slug。
  *
  * @param plan - 计划文本

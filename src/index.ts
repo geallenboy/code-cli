@@ -2,7 +2,7 @@
 /**
  * CLI 入口点
  *
- * Mini Claude Code 的主入口文件。负责启动 CLI 应用，
+ * Xiaomi Code 的主入口文件。负责启动 CLI 应用，
  * 解析命令行参数并初始化 Agent 交互循环。
  *
  * 参考 Claude Code: src/cli.tsx

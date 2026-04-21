@@ -117,7 +117,7 @@ export async function runRepl(agent: Agent): Promise<void> {
       rl.once('close', () => reject(new Error('readline closed')));
     });
 
-  console.log(chalk.green('Mini Claude Code') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
+  console.log(chalk.green('Xiaomi Code') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
   console.log();
 
   while (true) {

@@ -19,11 +19,11 @@ node -e "import('./dist/tools/file-ops.js').then(m => console.log(m.readFileCont
 ### 2.2 write_file
 
 ```bash
-node -e "import('./dist/tools/editor.js').then(m => console.log(m.writeFile('/tmp/mini-claude-test.txt', 'hello world')))"
-cat /tmp/mini-claude-test.txt
+node -e "import('./dist/tools/editor.js').then(m => console.log(m.writeFile('/tmp/xiaomi-code-test.txt', 'hello world')))"
+cat /tmp/xiaomi-code-test.txt
 ```
 
-**预期**：`File written: /tmp/mini-claude-test.txt (1 lines)`，文件内容为 `hello world`
+**预期**：`File written: /tmp/xiaomi-code-test.txt (1 lines)`，文件内容为 `hello world`
 
 ### 2.3 edit_file
 
@@ -103,7 +103,7 @@ node dist/index.js --provider deepseek "读取 package.json 文件的内容"
 
 **预期**：
 - `📖 read_file` + 参数
-- `↳ 1 | { "name": "mini-claude-code"...`
+- `↳ 1 | { "name": "xiaomi-code"...`
 - 模型总结文件内容
 
 ### 2.9 Agent 多工具调用
@@ -127,5 +127,5 @@ cat /tmp/test-agent-edit.ts
 ## 清理
 
 ```bash
-rm -f /tmp/mini-claude-test.txt /tmp/test-edit.ts /tmp/test-dup.ts /tmp/test-agent-edit.ts
+rm -f /tmp/xiaomi-code-test.txt /tmp/test-edit.ts /tmp/test-dup.ts /tmp/test-agent-edit.ts
 ```

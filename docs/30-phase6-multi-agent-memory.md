@@ -22,7 +22,7 @@
 ### Task 31: 记忆系统
 
 ```
-~/.mini-claude/memory/
+~/.xiaomi-code/memory/
 ├── user-prefer-dark-mode.md      # 用户偏好
 ├── feedback-use-vitest.md        # 行为反馈
 ├── project-code-freeze.md        # 项目动态
@@ -57,7 +57,7 @@ created: 2025-04-20
 ### Task 33: Hook 系统
 
 ```json
-// ~/.mini-claude/settings.json
+// ~/.xiaomi-code/settings.json
 {
   "hooks": {
     "PreToolUse": [{
