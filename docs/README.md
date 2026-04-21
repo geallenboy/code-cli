@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 384 个单元测试
+pnpm test                      # 578 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -39,6 +39,10 @@ bash scripts/e2e-test.sh       # 27 个端到端测试
 | Phase 5 | `phase-5/security-and-tools` | v0.5.0 | 安全与工具：权限规则 + 安全语义 + 流式并行 |
 | Phase 6 | `phase-6/multi-agent-and-memory` | v0.6.0 | 多 Agent：子 Agent + 记忆系统 + Hook |
 | Phase 7 | `phase-7/plan-mode-and-polish` | v1.0.0 | 计划模式 + 提示词缓存 + UI 增强 |
+| Phase 8 | `phase-8/context-engineering` | v1.1.0 | 上下文折叠 + 恢复 + 缓存追踪 |
+| Phase 9 | `phase-9/skills-tasks` | v1.2.0 | 技能系统 + 任务管理 |
+| Phase 10 | `phase-10/production` | v2.0.0 | 并发增强 + Bash AST + Web 工具 + Markdown |
+| Phase 11 | `phase-11/mcp-protocol` | v2.1.0 | MCP 协议支持（接入外部工具） |
 
 ## 技术栈
 
@@ -139,6 +143,11 @@ xiaomi-code/
 │   │   ├── index.ts              # 公共 API
 │   │   ├── store.ts              # 存储层（Markdown + YAML frontmatter）
 │   │   └── recall.ts             # 语义召回（LLM 评估相关性）
+│   ├── mcp/                      # MCP 协议客户端
+│   │   ├── index.ts              # McpManager + 公共 API
+│   │   ├── client.ts             # stdio transport + JSON-RPC 2.0
+│   │   ├── config.ts             # 配置加载（~/.xiaomi-code/mcp.json）
+│   │   └── converter.ts          # MCP schema → AI SDK tool 转换
 │   └── tools/                    # 工具系统
 │       ├── index.ts              # 工具注册表 + 安全语义元数据
 │       ├── file-ops.ts           # read_file + grep_search + list_files
@@ -169,7 +178,7 @@ xiaomi-code/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 384 个单元测试
+pnpm test               # 运行 578 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -202,6 +211,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 | `/plan` | 进入计划模式（只读） |
 | `/status` | 显示会话状态 |
 | `/rules` | 显示权限规则 |
+| `/mcp` | 列出已连接的 MCP 服务器 |
 
 ## 支持的 AI 提供商
 
@@ -217,45 +227,29 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 384 |
+| 单元测试 | 578 |
 | 端到端测试 | 27 |
-| 源文件 | 25+ |
-| 工具 | 6 + agent |
+| 源文件 | 30+ |
+| 工具 | 6 + agent + MCP |
 | 提供商 | 5 |
-| 开发文档 | 22 篇 |
+| 开发文档 | 23 篇 |
 | 测试文档 | 9 篇 |
-| Git 标签 | v0.1.0 → v1.0.0 (7 个) |
-| Phase | 7 |
-| Task | 39 |
+| Git 标签 | v0.1.0 → v2.1.0 (11 个) |
+| Phase | 11 |
+| Task | 55 |
 
-### Phase 8: 上下文工程深化 (v3)
+### Phase 8: 上下文工程深化 (v1.1.0)
 
 - [Task 40-42: Phase 8 总结](./40-phase8-context-cache.md)
 
-### Phase 9: 技能与任务 (v3)
+### Phase 9: 技能与任务 (v1.2.0)
 
 - [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
 
-### Phase 9: 技能与任务 (v3)
-
-- [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
-
-### Phase 9: 技能与任务 (v3)
-
-- [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
-
-### Phase 9: 技能与任务 (v3)
-
-- [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
-
-### Phase 10: 生产级打磨 (v3)
+### Phase 10: 生产级打磨 (v2.0.0)
 
 - [Task 48-51: Phase 10 总结](./48-phase10-production.md)
 
-### Phase 9: 技能与任务 (v3)
+### Phase 11: MCP 协议支持 (v2.1.0)
 
-- [Task 44-46: Phase 9 总结](./44-phase9-skills-tasks.md)
-
-### Phase 10: 生产级打磨 (v3)
-
-- [Task 48-51: Phase 10 总结](./48-phase10-production.md)
+- [Task 54-55: MCP 协议客户端](./54-phase11-mcp.md)

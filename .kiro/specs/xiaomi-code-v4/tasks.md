@@ -8,7 +8,7 @@ v4 从 80% 提升到 90%+ 特性覆盖。任务编号 54-73，延续 v1-v3(1-53)
 
 ## Phase 11: `phase-11/mcp-protocol` — MCP 协议支持
 
-- [ ] 54. MCP 客户端核心
+- [x] 54. MCP 客户端核心
   - [ ] 54.1 实现 MCP 客户端 (`src/mcp/client.ts`)
     - stdio transport: spawn 子进程，stdin/stdout JSON-RPC 2.0
     - initialize 握手 + initialized 通知

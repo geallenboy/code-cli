@@ -77,6 +77,8 @@ export interface CliArgs {
   yolo: boolean;
   /** 恢复上次会话 */
   resume: boolean;
+  /** 启用 MCP 工具加载 */
+  mcp: boolean;
 }
 
 // ===== 双层架构类型 (Phase 4) =====
