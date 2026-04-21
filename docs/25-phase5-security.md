@@ -11,8 +11,8 @@
 
 ```
 规则来源（优先级从高到低）：
-  1. 用户设置: ~/.xiaomi-code/settings.json
-  2. 项目设置: .xiaomi-code/settings.json
+  1. 用户设置: ~/.gearcode/settings.json
+  2. 项目设置: .gearcode/settings.json
   3. 会话规则: "always allow" 生成
 
 匹配模式：

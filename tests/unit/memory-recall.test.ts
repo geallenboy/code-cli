@@ -26,7 +26,7 @@ describe('recallRelevantMemories', () => {
     vi.resetModules();
     tempDir = join(
       tmpdir(),
-      `xiaomi-code-recall-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `gearcode-recall-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(tempDir, { recursive: true });
 

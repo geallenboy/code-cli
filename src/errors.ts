@@ -1,5 +1,5 @@
 /**
- * Custom error class hierarchy for Xiaomi Code.
+ * Custom error class hierarchy for GearCode.
  *
  * Design philosophy: "Errors are data, not exceptions."
  * Tool execution errors are converted to tool results and fed back to the model,

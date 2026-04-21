@@ -1,7 +1,7 @@
 /**
  * 技能存储与加载
  *
- * 从 ~/.xiaomi-code/skills/ 加载 Markdown + YAML frontmatter 技能定义。
+ * 从 ~/.gearcode/skills/ 加载 Markdown + YAML frontmatter 技能定义。
  * 懒加载：启动时只读 frontmatter，调用时加载完整内容。
  *
  * 参考 Claude Code: src/skills/ 系统
@@ -11,7 +11,7 @@ import { readFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const SKILLS_DIR = join(homedir(), '.xiaomi-code', 'skills');
+const SKILLS_DIR = join(homedir(), '.gearcode', 'skills');
 
 export interface SkillDefinition {
   name: string;

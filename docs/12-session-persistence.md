@@ -11,7 +11,7 @@
 ### 存储位置
 
 ```
-~/.xiaomi-code/sessions/
+~/.gearcode/sessions/
 ├── session-1713456789.json
 ├── session-1713456800.json
 └── ...
@@ -64,7 +64,7 @@ node dist/index.js --provider deepseek
 > Ctrl+C Ctrl+C  # 退出
 
 # 2. 检查会话文件
-ls ~/.xiaomi-code/sessions/
+ls ~/.gearcode/sessions/
 # 预期：看到 session-*.json 文件
 
 # 3. 恢复会话

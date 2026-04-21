@@ -27,15 +27,15 @@ async function main() {
 ```
 
 两种运行模式：
-- **一次性模式**：`xiaomi-code "fix the bug in index.ts"` → 执行后退出
-- **REPL 模式**：`xiaomi-code` → 进入交互循环
+- **一次性模式**：`gearcode "fix the bug in index.ts"` → 执行后退出
+- **REPL 模式**：`gearcode` → 进入交互循环
 
 ### 参数解析 (`parseArgs`)
 
 手动解析 `process.argv`，不引入 Commander.js（减少依赖）：
 
 ```bash
-xiaomi-code --provider openai --model gpt-4o --yolo "fix the bug"
+gearcode --provider openai --model gpt-4o --yolo "fix the bug"
 ```
 
 | 参数 | 默认值 | 说明 |
@@ -49,7 +49,7 @@ xiaomi-code --provider openai --model gpt-4o --yolo "fix the bug"
 ### REPL 循环 (`runRepl`)
 
 ```
-Xiaomi Code — type your message, /clear, /cost, or Ctrl+C to exit
+GearCode — type your message, /clear, /cost, or Ctrl+C to exit
 
 > 读取 src/index.ts 的内容
   🔧 read_file {"file_path":"src/index.ts"}
@@ -154,7 +154,7 @@ node dist/index.js --provider unknown "hello"
 node dist/index.js --provider deepseek
 # 预期输出：
 #   Provider: deepseek | Model: deepseek-chat
-#   Xiaomi Code — type your message, /clear, /cost, or Ctrl+C to exit
+#   GearCode — type your message, /clear, /cost, or Ctrl+C to exit
 #
 #   >
 

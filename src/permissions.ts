@@ -39,10 +39,10 @@ export class PermissionSystem {
 
   /** Load rules from user settings, project settings */
   private loadRules(): void {
-    // User settings: ~/.xiaomi-code/settings.json
-    this.loadFromFile(join(homedir(), '.xiaomi-code', 'settings.json'), 'user');
-    // Project settings: .xiaomi-code/settings.json
-    this.loadFromFile(join(process.cwd(), '.xiaomi-code', 'settings.json'), 'project');
+    // User settings: ~/.gearcode/settings.json
+    this.loadFromFile(join(homedir(), '.gearcode', 'settings.json'), 'user');
+    // Project settings: .gearcode/settings.json
+    this.loadFromFile(join(process.cwd(), '.gearcode', 'settings.json'), 'project');
   }
 
   private loadFromFile(path: string, source: string): void {

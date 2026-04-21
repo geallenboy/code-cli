@@ -1,11 +1,11 @@
 {
-  "name": "xiaomi-code",
+  "name": "gearcode",
   "version": "3.0.0",
   "description": "A minimal CLI programming agent inspired by Claude Code",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "xiaomi-code": "./dist/index.js"
+    "gearcode": "./dist/index.js"
   },
   "files": [
     "dist/",

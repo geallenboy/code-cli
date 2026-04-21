@@ -27,7 +27,7 @@ node dist/index.js --provider deepseek
 ```
 
 **预期**：
-- 显示 `Xiaomi Code — type your message, /clear, /cost, or Ctrl+C to exit`
+- 显示 `GearCode — type your message, /clear, /cost, or Ctrl+C to exit`
 - 显示 `> ` 提示符
 - 输入消息后模型回复，然后继续等待输入
 

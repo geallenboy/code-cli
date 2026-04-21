@@ -10,7 +10,7 @@ node dist/index.js --provider deepseek
 > Ctrl+C Ctrl+C  # 退出
 
 # 检查会话文件
-ls ~/.xiaomi-code/sessions/
+ls ~/.gearcode/sessions/
 ```
 
 **预期**：看到 `session-*.json` 文件
@@ -18,7 +18,7 @@ ls ~/.xiaomi-code/sessions/
 ### 6.2 查看会话内容
 
 ```bash
-cat ~/.xiaomi-code/sessions/$(ls -t ~/.xiaomi-code/sessions/ | head -1)
+cat ~/.gearcode/sessions/$(ls -t ~/.gearcode/sessions/ | head -1)
 ```
 
 **预期**：JSON 格式，包含 `id`、`startTime`、`cwd`、`messages` 数组
@@ -44,7 +44,7 @@ node dist/index.js --provider deepseek --resume
 
 ```bash
 # 清空会话目录
-rm -rf ~/.xiaomi-code/sessions/
+rm -rf ~/.gearcode/sessions/
 node dist/index.js --provider deepseek --resume
 ```
 

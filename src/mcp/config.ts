@@ -1,7 +1,7 @@
 /**
  * MCP 配置加载
  *
- * 从 ~/.xiaomi-code/mcp.json 加载 MCP 服务器配置。
+ * 从 ~/.gearcode/mcp.json 加载 MCP 服务器配置。
  * 支持多个并发服务器，每个服务器有独立的 command、args、env。
  *
  * 配置格式：
@@ -35,12 +35,12 @@ export interface McpConfig {
 }
 
 /** 默认配置文件路径 */
-const CONFIG_PATH = join(homedir(), '.xiaomi-code', 'mcp.json');
+const CONFIG_PATH = join(homedir(), '.gearcode', 'mcp.json');
 
 /**
  * 加载 MCP 配置
  *
- * @param configPath - 配置文件路径（默认 ~/.xiaomi-code/mcp.json）
+ * @param configPath - 配置文件路径（默认 ~/.gearcode/mcp.json）
  * @returns MCP 配置对象
  */
 export function loadMcpConfig(configPath: string = CONFIG_PATH): McpConfig {

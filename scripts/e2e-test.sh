@@ -1,5 +1,5 @@
 #!/bin/bash
-# Xiaomi Code — 端到端自动化测试脚本
+# GearCode — 端到端自动化测试脚本
 # 使用 DeepSeek 提供商测试所有功能
 # 用法: bash scripts/e2e-test.sh
 # 日志: test-reports/e2e-{timestamp}.log
@@ -59,7 +59,7 @@ section() {
 
 # 写入日志头
 {
-  echo "Xiaomi Code — E2E Test Report"
+  echo "GearCode — E2E Test Report"
   echo "Date: $(date)"
   echo "Node: $(node --version)"
   echo "Platform: $(uname -s) $(uname -m)"
@@ -72,7 +72,7 @@ section() {
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-echo -e "${GREEN}Xiaomi Code — 端到端自动化测试${NC}"
+echo -e "${GREEN}GearCode — 端到端自动化测试${NC}"
 echo -e "${DIM}使用 DeepSeek 提供商${NC}"
 echo ""
 
@@ -129,10 +129,10 @@ section "2. 工具直接测试 (不需要 API)"
 
 # read_file
 OUTPUT=$(node -e "import('./dist/tools/file-ops.js').then(m => console.log(m.readFileContent('package.json')))" 2>&1)
-if echo "$OUTPUT" | grep -q "xiaomi-code"; then
+if echo "$OUTPUT" | grep -q "gearcode"; then
   pass "read_file — 读取 package.json"
 else
-  fail "read_file" "未找到 xiaomi-code"
+  fail "read_file" "未找到 gearcode"
 fi
 
 # read_file 不存在
@@ -381,7 +381,7 @@ fi
 
 # 工具调用 — read_file
 OUTPUT=$(timeout 60 node dist/index.js --provider deepseek "读取 package.json 文件，告诉我项目名称是什么，只回答名称" 2>&1) || true
-if echo "$OUTPUT" | grep -q "read_file\|xiaomi-code"; then
+if echo "$OUTPUT" | grep -q "read_file\|gearcode"; then
   pass "DeepSeek 工具调用 — read_file"
 else
   fail "DeepSeek read_file" "$(echo $OUTPUT | head -c 300)"
@@ -420,10 +420,10 @@ section "10. 会话持久化"
 # ============================================================
 
 # 清理旧会话
-rm -rf ~/.xiaomi-code/sessions/
+rm -rf ~/.gearcode/sessions/
 
 OUTPUT=$(timeout 30 node dist/index.js --provider deepseek "记住数字 7749" 2>&1) || true
-SESSION_COUNT=$(ls ~/.xiaomi-code/sessions/ 2>/dev/null | wc -l | tr -d ' ')
+SESSION_COUNT=$(ls ~/.gearcode/sessions/ 2>/dev/null | wc -l | tr -d ' ')
 if [ "$SESSION_COUNT" -gt "0" ]; then
   pass "会话自动保存 — 文件已创建 ($SESSION_COUNT 个)"
 else

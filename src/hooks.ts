@@ -80,7 +80,7 @@ export class HookSystem {
    * ```
    */
   private loadHooks(): void {
-    const settingsPath = join(homedir(), '.xiaomi-code', 'settings.json');
+    const settingsPath = join(homedir(), '.gearcode', 'settings.json');
     try {
       if (!existsSync(settingsPath)) return;
       const settings = JSON.parse(readFileSync(settingsPath, 'utf-8')) as HookSettings;
