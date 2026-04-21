@@ -8,7 +8,7 @@ v3 升级从 60% 提升到 80% 特性覆盖。任务编号 40-59，延续 v1(1-1
 
 ## Phase 8: `phase-8/context-and-cache` — 上下文工程深化
 
-- [ ] 40. Context Collapse（投影式折叠）
+- [x] 40. Context Collapse（投影式折叠）
   - [ ] 40.1 实现 ContextCollapse 类 (`src/compactor/collapse.ts`)
     - 维护原始历史和折叠视图两份数据
     - 识别不活跃段（最近 5 轮无引用）并折叠为一行摘要
@@ -63,7 +63,7 @@ v3 升级从 60% 提升到 80% 特性覆盖。任务编号 40-59，延续 v1(1-1
 
 ## Phase 9: `phase-9/skills-and-tasks` — 技能与任务
 
-- [ ] 44. 技能系统
+- [x] 44. 技能系统
   - [ ] 44.1 实现技能存储 (`src/skills/store.ts`)
     - 从 ~/.mini-claude/skills/ 加载 Markdown + YAML frontmatter
     - 懒加载：启动时只读 frontmatter，调用时加载完整内容

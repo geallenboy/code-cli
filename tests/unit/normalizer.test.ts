@@ -243,40 +243,6 @@ import fc from 'fast-check';
 /** Generate a random tool call ID */
 const toolCallIdArb = fc.stringMatching(/^tc-[a-z0-9]{1,8}$/);
 
-/** Generate a random tool name */
-const toolNameArb = fc.constantFrom('read_file', 'write_file', 'run_shell', 'edit_file', 'search');
-
-/** Generate a user message */
-const userMessageArb = fc.string({ minLength: 1, maxLength: 50 }).map(
-  (content): ModelMessage => ({ role: 'user', content }),
-);
-
-/** Generate an assistant message with tool calls */
-function assistantWithToolCallsArb(ids: string[]) {
-  return fc.constant({
-    role: 'assistant' as const,
-    content: ids.map((id) => ({
-      type: 'tool-call' as const,
-      toolCallId: id,
-      toolName: 'read_file',
-      input: { path: 'test.ts' },
-    })),
-  } as ModelMessage);
-}
-
-/** Generate a tool result message for given IDs */
-function toolResultForIdsArb(ids: string[]) {
-  return fc.constant({
-    role: 'tool' as const,
-    content: ids.map((id) => ({
-      type: 'tool-result' as const,
-      toolCallId: id,
-      toolName: 'read_file',
-      output: { type: 'text' as const, value: 'result' },
-    })),
-  } as ModelMessage);
-}
-
 /**
  * **Validates: Requirements 4**
  * P6: Message Normalization Idempotency

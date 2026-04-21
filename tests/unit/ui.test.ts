@@ -14,6 +14,8 @@ import {
   printPermissionRequest,
   printTokenBar,
   printCompactNotification,
+  disableColor,
+  Spinner,
 } from '../../src/ui.js';
 
 describe('UI Output', () => {
@@ -171,6 +173,40 @@ describe('UI Output', () => {
       const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
       expect(output).toContain('auto');
       expect(output).toContain('25,000');
+    });
+  });
+
+  describe('Spinner', () => {
+    it('should start and stop without errors', () => {
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      const spinner = new Spinner('Testing...');
+      spinner.start();
+      // Let it tick once
+      spinner.tick();
+      spinner.stop();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should not start twice', () => {
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      const spinner = new Spinner();
+      spinner.start();
+      spinner.start(); // Should be a no-op
+      spinner.stop();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should stop gracefully when not started', () => {
+      const spinner = new Spinner();
+      // Should not throw
+      expect(() => spinner.stop()).not.toThrow();
+    });
+  });
+
+  describe('disableColor', () => {
+    it('should be callable without errors', () => {
+      // Just verify it doesn't throw
+      expect(() => disableColor()).not.toThrow();
     });
   });
 });
