@@ -10,6 +10,7 @@
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { renderEnhancedDiff } from '../diff-renderer.js';
 
 /**
  * 执行 search-and-replace 编辑
@@ -63,6 +64,10 @@ export function editFile(
     const newContent = content.replace(oldString, newString);
     writeFileSync(filePath, newContent, 'utf-8');
 
+    // Render diff output
+    const diffOutput = renderEnhancedDiff(content, newContent, filePath);
+    console.log(diffOutput);
+
     // Calculate what changed for the success message
     const oldLines = oldString.split('\n').length;
     const newLines = newString.split('\n').length;
@@ -88,6 +93,11 @@ export function writeFile(filePath: string, content: string): string {
     const dir = dirname(filePath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(filePath, content, 'utf-8');
+
+    // Render diff output (new file: empty old content)
+    const diffOutput = renderEnhancedDiff('', content, filePath);
+    console.log(diffOutput);
+
     const lines = content.split('\n').length;
     return `File written: ${filePath} (${lines} lines)`;
   } catch (error: unknown) {

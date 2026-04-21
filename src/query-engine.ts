@@ -12,7 +12,8 @@ import type { ModelMessage } from 'ai';
 import type { LanguageModel } from 'ai';
 import { createModel } from './provider.js';
 import { query, type QueryParams } from './query.js';
-import { printAssistantText, printToolCall, printToolResult } from './ui.js';
+import { printToolCall, printToolResult } from './ui.js';
+import { StreamingMarkdownRenderer } from './markdown.js';
 import type { QueryEngineConfig, StreamEvent, TokenUsage } from './types.js';
 import { saveSession } from './session.js';
 import type { ToolContext } from './tools/index.js';
@@ -89,6 +90,7 @@ export class QueryEngine {
       // Consume the query generator — this is the key dual-layer connection
       const generator = query(params);
       let lastText = '';
+      const markdownRenderer = new StreamingMarkdownRenderer();
 
       while (true) {
         const { value, done } = await generator.next();
@@ -96,6 +98,8 @@ export class QueryEngine {
         if (done) {
           // value is Terminal
           if (lastText) {
+            const remaining = markdownRenderer.flush();
+            if (remaining) process.stdout.write(remaining);
             process.stdout.write('\n');
           }
           break;
@@ -104,10 +108,12 @@ export class QueryEngine {
         // value is StreamEvent
         const event: StreamEvent = value;
         switch (event.type) {
-          case 'text':
-            printAssistantText(event.text);
+          case 'text': {
+            const rendered = markdownRenderer.push(event.text);
+            if (rendered) process.stdout.write(rendered);
             lastText += event.text;
             break;
+          }
           case 'tool_call':
             printToolCall(event.toolName, event.input);
             break;

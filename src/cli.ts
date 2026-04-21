@@ -8,7 +8,6 @@
  * 简化：readline + chalk 代替 React + Ink
  */
 
-import * as readline from 'node:readline';
 import chalk from 'chalk';
 import type { Agent } from './agent.js';
 import type { CliArgs } from './types.js';
@@ -19,6 +18,7 @@ import { resetPromptCache } from './prompt.js';
 import { getBuiltinSkills, getSkillPrompt, loadSkills } from './skills/index.js';
 import { createTask, listTasks as listAllTasks, getProgressSummary } from './tasks/index.js';
 import type { McpManager } from './mcp/index.js';
+import { MultiLineInput } from './input.js';
 
 /**
  * 解析命令行参数。
@@ -107,41 +107,37 @@ export function parseArgs(): CliArgs {
  * @param agent - Agent 实例
  */
 export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<void> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+  const multiLineInput = new MultiLineInput();
 
   let ctrlCCount = 0;
   let planState = createPlanModeState();
 
-  // Handle Ctrl+C
-  rl.on('SIGINT', () => {
+  // Set up Ctrl+C handler for abort-during-processing and double-Ctrl+C-to-exit.
+  // MultiLineInput handles Ctrl+C during input (clears buffer).
+  // This handler covers Ctrl+C when the agent is processing (not in prompt).
+  const sigintHandler = (): void => {
     if (agent.isProcessing) {
-      // Abort current operation
       agent.abort();
       console.log(chalk.yellow('\n⏹ Aborted'));
     } else {
       ctrlCCount++;
       if (ctrlCCount >= 2) {
         console.log(chalk.dim('\nGoodbye!'));
-        rl.close();
+        multiLineInput.destroy();
         process.exit(0);
       }
       console.log(chalk.dim('\nPress Ctrl+C again to exit'));
     }
-  });
+  };
+  process.on('SIGINT', sigintHandler);
 
-  const prompt = (): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const indicator = planState.active ? chalk.magenta('[PLAN]> ') : chalk.cyan('> ');
-      rl.question(indicator, (answer) => {
-        resolve(answer);
-      });
-      rl.once('close', () => reject(new Error('readline closed')));
-    });
+  const prompt = (): Promise<string> => {
+    const indicator = planState.active ? chalk.magenta('[PLAN]> ') : chalk.cyan('> ');
+    return multiLineInput.prompt(indicator);
+  };
 
   console.log(chalk.green('Code CLI') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
+  console.log(chalk.dim('  Alt+Enter for newline, Enter to submit'));
   console.log();
 
   while (true) {
@@ -381,10 +377,13 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
       await agent.chat(trimmed);
       console.log(); // Blank line after response
     } catch (error) {
-      if (error instanceof Error && error.message === 'readline closed') {
+      if (error instanceof Error && (error.message === 'readline closed' || error.message === 'input destroyed')) {
         break;
       }
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     }
   }
+
+  multiLineInput.destroy();
+  process.removeListener('SIGINT', sigintHandler);
 }

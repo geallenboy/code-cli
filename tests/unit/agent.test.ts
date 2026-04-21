@@ -288,6 +288,27 @@ describe('Agent', () => {
         printedToolResults.push({ name, result })),
     }));
 
+    // Mock the markdown module to capture streaming text output
+    vi.doMock('../../src/markdown.js', () => ({
+      StreamingMarkdownRenderer: class {
+        private text = '';
+        push(chunk: string) {
+          printedText.push(chunk);
+          this.text += chunk;
+          return chunk;
+        }
+        flush() {
+          return '';
+        }
+        reset() {
+          this.text = '';
+        }
+      },
+      renderMarkdown: (text: string) => text,
+      renderDiff: (oldContent: string, newContent: string, filePath: string) =>
+        `--- a/${filePath}\n+++ b/${filePath}`,
+    }));
+
     // Dynamically import Agent after mocking
     const { Agent } = await import('../../src/agent.js');
 
