@@ -12,6 +12,74 @@ import chalk from 'chalk';
 import type { CacheStats } from './cache-tracker.js';
 
 /**
+ * 禁用颜色输出（--no-color 支持）
+ *
+ * 设置 chalk level 为 0 以禁用所有 ANSI 颜色。
+ */
+export function disableColor(): void {
+  chalk.level = 0;
+}
+
+/**
+ * Spinner 状态机
+ *
+ * 在模型生成期间显示旋转动画 + 已用时间。
+ * 超过 10s 无新 token 时显示 stall 指示。
+ */
+export class Spinner {
+  private frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  private frameIndex = 0;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private startTime = 0;
+  private lastTokenTime = 0;
+  private message: string;
+
+  constructor(message = 'Thinking...') {
+    this.message = message;
+  }
+
+  /** Start the spinner animation */
+  start(): void {
+    if (this.intervalId) return;
+    this.startTime = Date.now();
+    this.lastTokenTime = Date.now();
+    this.intervalId = setInterval(() => {
+      this.render();
+    }, 80);
+  }
+
+  /** Notify the spinner that a new token was received */
+  tick(): void {
+    this.lastTokenTime = Date.now();
+  }
+
+  /** Stop the spinner and clear the line */
+  stop(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    // Clear the spinner line
+    process.stderr.write('\r\x1b[K');
+  }
+
+  private render(): void {
+    const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
+    const frame = this.frames[this.frameIndex % this.frames.length];
+    this.frameIndex++;
+
+    const stallTime = Date.now() - this.lastTokenTime;
+    const stallIndicator = stallTime > 10_000
+      ? chalk.yellow(' (stalled)')
+      : '';
+
+    process.stderr.write(
+      `\r${chalk.cyan(frame ?? '')} ${this.message} ${chalk.dim(`${elapsed}s`)}${stallIndicator}\x1b[K`,
+    );
+  }
+}
+
+/**
  * 获取工具对应的图标
  * @param name - 工具名称
  * @returns 对应的 emoji 图标

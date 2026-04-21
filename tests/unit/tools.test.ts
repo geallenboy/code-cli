@@ -9,7 +9,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { getToolDefinitions, truncateResult, getToolSafety } from '../../src/tools/index.js';
-import type { ToolSafetyMetadata } from '../../src/tools/index.js';
 
 describe('Tool Registry', () => {
   describe('truncateResult', () => {
@@ -68,9 +67,9 @@ describe('Tool Registry', () => {
       expect(Object.keys(tools)).toContain('run_shell');
     });
 
-    it('should return exactly 6 tools', () => {
+    it('should return exactly 8 tools', () => {
       const tools = getToolDefinitions();
-      expect(Object.keys(tools)).toHaveLength(6);
+      expect(Object.keys(tools)).toHaveLength(8);
     });
 
     it('should have description for each tool', () => {

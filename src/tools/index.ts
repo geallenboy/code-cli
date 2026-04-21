@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { readFileContent, grepSearch, listFiles } from './file-ops.js';
 import { writeFile, editFile } from './editor.js';
 import { executeShellCommand, needsConfirmation } from './shell.js';
+import { webFetchTool, webSearchTool } from './web.js';
 
 /**
  * 工具安全语义元数据
@@ -37,6 +38,8 @@ const TOOL_SAFETY: Record<string, ToolSafetyMetadata> = {
   grep_search: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
   list_files: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
   run_shell: { isReadOnly: false, isConcurrencySafe: false, isDestructive: false }, // dynamic
+  web_fetch: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
+  web_search: { isReadOnly: true, isConcurrencySafe: true, isDestructive: false },
 };
 
 /**
@@ -234,6 +237,8 @@ export function getToolDefinitions(ctx?: ToolContext): Record<string, Tool> {
     list_files: listFilesTool,
     read_file: readFileTool,
     run_shell: runShellTool,
+    web_fetch: webFetchTool,
+    web_search: webSearchTool,
     write_file: writeFileTool,
   };
 }
