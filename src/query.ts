@@ -26,6 +26,7 @@ import { microCompact } from './compactor/micro.js';
 import { applyCollapse } from './compactor/collapse.js';
 import { shouldAutoCompact, autoCompact } from './compactor/auto.js';
 import { normalizeMessages } from './normalizer.js';
+import { formatRetryProgress, formatRetryExhausted } from './retry-display.js';
 
 /**
  * 判断错误是否可重试。
@@ -73,8 +74,15 @@ export async function withRetry<T>(
       return await fn();
     } catch (error) {
       if (signal?.aborted) throw error;
-      if (!isRetryableError(error) || attempt === maxRetries) throw error;
+      if (!isRetryableError(error) || attempt === maxRetries) {
+        if (attempt === maxRetries && isRetryableError(error)) {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          process.stderr.write(`\r${formatRetryExhausted(maxRetries, errMsg)}\n`);
+        }
+        throw error;
+      }
       const delay = Math.min(1000 * Math.pow(2, attempt), 30000) + Math.random() * 1000;
+      process.stderr.write(`\r${formatRetryProgress({ currentAttempt: attempt + 1, maxRetries, waitMs: delay })}\x1b[K`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }

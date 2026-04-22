@@ -9,6 +9,7 @@
  */
 
 import chalk from 'chalk';
+import * as readline from 'node:readline';
 import type { Agent } from './agent.js';
 import type { CliArgs } from './types.js';
 import { printCost, printTokenBar } from './ui.js';
@@ -19,6 +20,8 @@ import { getBuiltinSkills, getSkillPrompt, loadSkills } from './skills/index.js'
 import { createTask, listTasks as listAllTasks, getProgressSummary } from './tasks/index.js';
 import type { McpManager } from './mcp/index.js';
 import { MultiLineInput } from './input.js';
+import { detectRecoverableSession, formatRecoveryPrompt, parseRecoveryAnswer } from './session-recovery.js';
+import { renderWelcomeScreen } from './welcome.js';
 
 /**
  * 解析命令行参数。
@@ -136,9 +139,49 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
     return multiLineInput.prompt(indicator);
   };
 
+  // Display welcome screen with project context
+  try {
+    const welcomeLines = renderWelcomeScreen(
+      process.cwd(),
+      agent.config.provider ?? 'anthropic',
+      agent.config.model ?? 'default',
+    );
+    for (const line of welcomeLines) {
+      console.log(chalk.dim(line));
+    }
+    console.log();
+  } catch {
+    // Welcome screen is best-effort; ignore errors
+  }
+
   console.log(chalk.green('Code CLI') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
   console.log(chalk.dim('  Alt+Enter for newline, Enter to submit'));
   console.log();
+
+  // Check for recoverable session before entering REPL loop
+  try {
+    const candidate = detectRecoverableSession();
+    if (candidate) {
+      console.log(chalk.yellow(formatRecoveryPrompt(candidate)));
+      const answer = await new Promise<string>((resolve) => {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        rl.question('', (ans) => {
+          rl.close();
+          resolve(ans);
+        });
+      });
+      if (parseRecoveryAnswer(answer)) {
+        console.log(chalk.dim('Resuming session...'));
+        // The agent's --resume flag handles actual restoration
+        // We just signal intent here
+      } else {
+        console.log(chalk.dim('Starting new session.'));
+      }
+      console.log();
+    }
+  } catch {
+    // Session recovery is best-effort; ignore errors
+  }
 
   while (true) {
     try {

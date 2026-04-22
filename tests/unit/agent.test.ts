@@ -286,6 +286,12 @@ describe('Agent', () => {
         printedToolCalls.push({ name, input })),
       printToolResult: vi.fn((name: string, result: string) =>
         printedToolResults.push({ name, result })),
+      Spinner: class {
+        setMode() {}
+        start() {}
+        stop() {}
+        tick() {}
+      },
     }));
 
     // Mock the markdown module to capture streaming text output

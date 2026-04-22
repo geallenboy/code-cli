@@ -10,6 +10,7 @@
 
 import chalk from 'chalk';
 import type { CacheStats } from './cache-tracker.js';
+import { renderToolResult as renderToolResultEnhanced } from './tool-result-renderer.js';
 
 /**
  * 禁用颜色输出（--no-color 支持）
@@ -20,11 +21,26 @@ export function disableColor(): void {
   chalk.level = 0;
 }
 
+/** Spinner 模式类型 */
+export type SpinnerMode = 'requesting' | 'thinking' | 'responding';
+
+/** 各模式配置 */
+const SPINNER_MODES: Record<SpinnerMode, { interval: number; label: string }> = {
+  requesting: { interval: 50, label: '请求中...' },
+  thinking: { interval: 200, label: '思考中...' },
+  responding: { interval: 100, label: '响应中...' },
+};
+
+/** 停滞警告阈值（毫秒） */
+const STALL_WARNING_MS = 10_000;
+const STALL_CRITICAL_MS = 20_000;
+
 /**
  * Spinner 状态机
  *
  * 在模型生成期间显示旋转动画 + 已用时间。
- * 超过 10s 无新 token 时显示 stall 指示。
+ * 支持三种模式：requesting（50ms/帧）、thinking（200ms/帧）、responding（100ms/帧）。
+ * 超过 10s 无新 token 时颜色渐变为黄色，超过 20s 渐变为红色。
  */
 export class Spinner {
   private frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -33,9 +49,36 @@ export class Spinner {
   private startTime = 0;
   private lastTokenTime = 0;
   private message: string;
+  private _mode: SpinnerMode = 'requesting';
 
   constructor(message = 'Thinking...') {
     this.message = message;
+  }
+
+  /** Get current mode */
+  get mode(): SpinnerMode {
+    return this._mode;
+  }
+
+  /**
+   * 设置 Spinner 模式
+   *
+   * 切换模式会更新动画间隔和标签。
+   *
+   * @param mode - 新模式
+   */
+  setMode(mode: SpinnerMode): void {
+    this._mode = mode;
+    const config = SPINNER_MODES[mode];
+    this.message = config.label;
+
+    // 如果正在运行，重新设置间隔
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = setInterval(() => {
+        this.render();
+      }, config.interval);
+    }
   }
 
   /** Start the spinner animation */
@@ -43,9 +86,10 @@ export class Spinner {
     if (this.intervalId) return;
     this.startTime = Date.now();
     this.lastTokenTime = Date.now();
+    const config = SPINNER_MODES[this._mode];
     this.intervalId = setInterval(() => {
       this.render();
-    }, 80);
+    }, config.interval);
   }
 
   /** Notify the spinner that a new token was received */
@@ -63,18 +107,36 @@ export class Spinner {
     process.stderr.write('\r\x1b[K');
   }
 
+  /**
+   * 获取停滞时间（毫秒）
+   * 用于测试
+   */
+  getStallTime(): number {
+    return Date.now() - this.lastTokenTime;
+  }
+
   private render(): void {
     const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
     const frame = this.frames[this.frameIndex % this.frames.length];
     this.frameIndex++;
 
     const stallTime = Date.now() - this.lastTokenTime;
-    const stallIndicator = stallTime > 10_000
-      ? chalk.yellow(' (stalled)')
-      : '';
+
+    // 停滞颜色渐变：正常 → 黄色 → 红色
+    let frameColor: (text: string) => string;
+    let stallIndicator = '';
+    if (stallTime > STALL_CRITICAL_MS) {
+      frameColor = chalk.red;
+      stallIndicator = chalk.red(' (stalled)');
+    } else if (stallTime > STALL_WARNING_MS) {
+      frameColor = chalk.yellow;
+      stallIndicator = chalk.yellow(' (stalled)');
+    } else {
+      frameColor = chalk.cyan;
+    }
 
     process.stderr.write(
-      `\r${chalk.cyan(frame ?? '')} ${this.message} ${chalk.dim(`${elapsed}s`)}${stallIndicator}\x1b[K`,
+      `\r${frameColor(frame ?? '')} ${this.message} ${chalk.dim(`${elapsed}s`)}${stallIndicator}\x1b[K`,
     );
   }
 }
@@ -111,13 +173,27 @@ export function printToolCall(name: string, input: Record<string, unknown>): voi
 }
 
 /**
- * 打印工具结果（截断到 500 字符显示）
- * @param _name - 工具名称（保留用于未来扩展）
+ * 打印工具结果（使用增强渲染器：语法高亮 + 行号 + 截断）
+ * @param name - 工具名称
  * @param result - 工具执行结果
  */
-export function printToolResult(_name: string, result: string): void {
-  const display = result.length > 500 ? result.slice(0, 497) + '...' : result;
-  console.log(chalk.dim(`  ↳ ${display.split('\n').join('\n    ')}`));
+export function printToolResult(name: string, result: string): void {
+  // 尝试从结果中提取文件路径（read_file / grep_search 等工具）
+  const filePath = extractFilePath(name, result);
+  const rendered = renderToolResultEnhanced(name, result, filePath ?? undefined);
+  console.log(chalk.dim('  ↳ ') + rendered.split('\n').join('\n    '));
+}
+
+/**
+ * 从工具结果中提取文件路径
+ */
+function extractFilePath(_name: string, result: string): string | null {
+  // 尝试匹配常见的文件路径模式
+  const match = result.match(/^((?:\/|\.\/|\.\.\/|[a-zA-Z]:[\\/])?[\w./-]+\.\w+)/);
+  if (match?.[1] && match[1].includes('.')) {
+    return match[1];
+  }
+  return null;
 }
 
 /**

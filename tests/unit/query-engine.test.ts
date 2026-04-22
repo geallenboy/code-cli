@@ -42,6 +42,7 @@ describe('QueryEngine', () => {
 
   it('should track token usage after chat', async () => {
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const engine = new QueryEngine({
       provider: 'anthropic', model: 'test', yolo: false, effectiveContextWindow: 100000,
     });
@@ -52,6 +53,7 @@ describe('QueryEngine', () => {
 
   it('should push user message to history', async () => {
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const engine = new QueryEngine({
       provider: 'anthropic', model: 'test', yolo: false, effectiveContextWindow: 100000,
     });
@@ -61,6 +63,7 @@ describe('QueryEngine', () => {
 
   it('should clear history', async () => {
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const engine = new QueryEngine({
       provider: 'anthropic', model: 'test', yolo: false, effectiveContextWindow: 100000,
     });
@@ -72,6 +75,7 @@ describe('QueryEngine', () => {
 
   it('should not be processing after chat completes', async () => {
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const engine = new QueryEngine({
       provider: 'anthropic', model: 'test', yolo: false, effectiveContextWindow: 100000,
     });

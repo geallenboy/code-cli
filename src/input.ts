@@ -9,6 +9,17 @@
  */
 
 import * as readline from 'node:readline';
+import { handleTabCompletion } from './tab-completer.js';
+import {
+  createSearchState,
+  searchAppendChar,
+  searchBackspace,
+  searchCycleOlder,
+  searchSelect,
+  searchEscape,
+  formatSearchPrompt,
+  type HistorySearchState,
+} from './history-search.js';
 
 /** 光标位置 */
 export interface CursorPosition {
@@ -243,6 +254,20 @@ export function handleKeypress(
     return 'continue';
   }
 
+  // Tab → 文件路径补全
+  if (key.name === 'tab' && !key.ctrl && !key.meta) {
+    const result = handleTabCompletion(
+      buffer.lines[buffer.cursor.line],
+      buffer.cursor.col,
+      process.cwd(),
+    );
+    if (result) {
+      buffer.lines[buffer.cursor.line] = result.line;
+      buffer.cursor.col = result.cursorCol;
+    }
+    return 'continue';
+  }
+
   // 普通字符（有 key 但也有 ch）
   if (ch && !key.ctrl && !key.meta && ch.length === 1 && ch >= ' ') {
     buffer.insertChar(ch);
@@ -379,9 +404,77 @@ export class MultiLineInput {
         process.stdin.pause();
       };
 
+      /** Ctrl+R 历史搜索状态 */
+      let searchState: HistorySearchState | null = null;
+
+      /** 渲染搜索模式提示 */
+      const renderSearch = (): void => {
+        if (!searchState) return;
+        const prompt = formatSearchPrompt(searchState);
+        // Clear current line and show search prompt
+        process.stdout.write('\r\x1b[K' + prompt);
+      };
+
+      /** 退出搜索模式，将文本放入缓冲区 */
+      const exitSearch = (text: string): void => {
+        searchState = null;
+        buffer.clear();
+        for (const ch of text) {
+          buffer.insertChar(ch);
+        }
+        prevLineCount = 1;
+        renderWithTracking();
+      };
+
       const onKeypress = (ch: string | undefined, key: KeypressEvent | undefined): void => {
         if (this.destroyed) {
           cleanup();
+          return;
+        }
+
+        // Handle Ctrl+R search mode
+        if (searchState) {
+          if (key?.name === 'return') {
+            // Enter: select match and exit search
+            const selected = searchSelect(searchState);
+            exitSearch(selected ?? '');
+            return;
+          }
+          if (key?.name === 'escape') {
+            // Escape: cancel search, restore saved input
+            const saved = searchEscape(searchState);
+            exitSearch(saved);
+            return;
+          }
+          if (key?.name === 'r' && key?.ctrl) {
+            // Ctrl+R again: cycle to older match
+            searchState = searchCycleOlder(searchState, this.history);
+            renderSearch();
+            return;
+          }
+          if (key?.name === 'backspace') {
+            searchState = searchBackspace(searchState, this.history);
+            renderSearch();
+            return;
+          }
+          if (key?.name === 'c' && key?.ctrl) {
+            // Ctrl+C: exit search, clear
+            exitSearch('');
+            return;
+          }
+          // Regular character: append to search query
+          if (ch && ch.length === 1 && ch >= ' ') {
+            searchState = searchAppendChar(searchState, ch, this.history);
+            renderSearch();
+            return;
+          }
+          return;
+        }
+
+        // Ctrl+R: enter search mode
+        if (key?.name === 'r' && key?.ctrl) {
+          searchState = createSearchState(buffer.getText());
+          renderSearch();
           return;
         }
 

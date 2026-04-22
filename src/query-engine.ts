@@ -12,24 +12,51 @@ import type { ModelMessage } from 'ai';
 import type { LanguageModel } from 'ai';
 import { createModel } from './provider.js';
 import { query, type QueryParams } from './query.js';
-import { printToolCall, printToolResult } from './ui.js';
+import { printToolCall, printToolResult, Spinner } from './ui.js';
 import { StreamingMarkdownRenderer } from './markdown.js';
 import type { QueryEngineConfig, StreamEvent, TokenUsage } from './types.js';
 import { saveSession } from './session.js';
 import type { ToolContext } from './tools/index.js';
 import * as readline from 'node:readline';
+import { PermissionDialog } from './ink/components/permission-dialog.js';
+import type { RiskLevel } from './ink/components/permission-dialog.js';
 
 /**
  * 在终端中提示用户确认操作。
+ * 使用增强版 PermissionDialog，支持防误触延迟和风险等级颜色。
+ *
  * @param message - 确认提示消息
  * @returns 用户是否确认（y/Y = 确认）
  */
 async function askConfirmation(message: string): Promise<boolean> {
+  const dialog = new PermissionDialog();
+
+  // 从消息中推断风险等级
+  const riskLevel: RiskLevel = message.includes('Dangerous') ? 'HIGH' : 'MEDIUM';
+
+  // 渲染增强对话框
+  const rendered = dialog.renderEnhanced({
+    toolName: 'shell',
+    riskLevel,
+    riskExplanation: message,
+    antiMisclickDelay: 200,
+  });
+  process.stdout.write(rendered + '\n');
+
+  // 等待防误触延迟结束
+  const remaining = dialog.getRemainingDelay();
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+    // 刷新选项显示（从 dim 变为正常）
+    process.stdout.write('\r' + dialog.renderOptions() + '\n');
+  }
+
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
-    rl.question(`${message}\nAllow? [y/N] `, (answer) => {
+    rl.question('Allow? [y/N] ', (answer) => {
       rl.close();
-      resolve(answer.trim().toLowerCase() === 'y');
+      const choice = dialog.parseChoice(answer);
+      resolve(choice === 'yes' || choice === 'always');
     });
   });
 }
@@ -91,11 +118,16 @@ export class QueryEngine {
       const generator = query(params);
       let lastText = '';
       const markdownRenderer = new StreamingMarkdownRenderer();
+      const spinner = new Spinner();
+      spinner.setMode('requesting');
+      spinner.start();
+      let firstTextReceived = false;
 
       while (true) {
         const { value, done } = await generator.next();
 
         if (done) {
+          spinner.stop();
           // value is Terminal
           if (lastText) {
             const remaining = markdownRenderer.flush();
@@ -109,13 +141,24 @@ export class QueryEngine {
         const event: StreamEvent = value;
         switch (event.type) {
           case 'text': {
+            if (!firstTextReceived) {
+              firstTextReceived = true;
+              spinner.setMode('responding');
+              spinner.stop();
+            }
+            spinner.tick();
             const rendered = markdownRenderer.push(event.text);
             if (rendered) process.stdout.write(rendered);
             lastText += event.text;
             break;
           }
           case 'tool_call':
+            spinner.stop();
             printToolCall(event.toolName, event.input);
+            // Restart spinner in requesting mode for next API call
+            firstTextReceived = false;
+            spinner.setMode('requesting');
+            spinner.start();
             break;
           case 'tool_result':
             printToolResult(event.toolName, event.result);
@@ -128,6 +171,7 @@ export class QueryEngine {
             // Could print a notification here
             break;
           case 'error':
+            spinner.stop();
             if (!event.recoverable) {
               console.error(`Error: ${event.error.message}`);
             }
