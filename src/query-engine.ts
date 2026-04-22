@@ -115,7 +115,7 @@ export class QueryEngine {
         toolContext: toolCtx,
         effectiveContextWindow: this._config.effectiveContextWindow,
         abortSignal: this.abortController.signal,
-        maxTurns: this._config.maxTurns ?? 25,
+        maxTurns: this._config.maxTurns ?? 15,
       };
 
       // Consume the query generator — this is the key dual-layer connection

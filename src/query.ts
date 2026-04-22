@@ -166,9 +166,12 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
   );
   const systemPrompt = buildSystemPrompt(toolDescriptions);
 
-  // Duplicate tool call detection
-  const recentToolCalls: string[] = [];
-  const MAX_DUPLICATE_COUNT = 2; // Allow same call at most twice
+  // Tool call abuse detection
+  const toolCallHistory: string[] = [];  // Track tool names (not full args)
+  const exactCallHistory: string[] = [];  // Track exact calls (name + args)
+  const MAX_TOTAL_TOOL_CALLS = 10;  // Hard limit on total tool calls per conversation turn
+  const MAX_SAME_TOOL = 3;  // Max times the same tool name can be called
+  const MAX_EXACT_DUPLICATE = 1;  // Same tool + same args = immediate stop
 
   while (true) {
     // Check abort signal
@@ -311,23 +314,32 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
       return { reason: 'complete' as const, lastAssistantText: text || undefined };
     }
 
-    // Yield tool events + duplicate detection
-    let hasDuplicate = false;
+    // Yield tool events + abuse detection
+    let shouldForceStop = false;
     for (const tc of toolCalls) {
       yield {
         type: 'tool_call' as const,
         toolName: tc.toolName,
         input: tc.input as Record<string, unknown>,
       };
-      // Track for duplicate detection
-      const callKey = `${tc.toolName}:${JSON.stringify(tc.input)}`;
-      const duplicateCount = recentToolCalls.filter(k => k === callKey).length;
-      if (duplicateCount >= MAX_DUPLICATE_COUNT) {
-        hasDuplicate = true;
+
+      // Track tool usage
+      toolCallHistory.push(tc.toolName);
+      const exactKey = `${tc.toolName}:${JSON.stringify(tc.input)}`;
+      const exactDuplicates = exactCallHistory.filter(k => k === exactKey).length;
+      const sameToolCount = toolCallHistory.filter(n => n === tc.toolName).length;
+      exactCallHistory.push(exactKey);
+
+      // Check abuse conditions
+      if (exactDuplicates >= MAX_EXACT_DUPLICATE) {
+        shouldForceStop = true; // Exact same call repeated
       }
-      recentToolCalls.push(callKey);
-      // Keep only last 10 calls
-      if (recentToolCalls.length > 10) recentToolCalls.shift();
+      if (sameToolCount >= MAX_SAME_TOOL) {
+        shouldForceStop = true; // Same tool called too many times
+      }
+      if (toolCallHistory.length >= MAX_TOTAL_TOOL_CALLS) {
+        shouldForceStop = true; // Total tool calls exceeded
+      }
     }
     for (const tr of toolResults) {
       const outputStr = typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output);
@@ -348,11 +360,11 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
       state.messages.push({ role: 'tool', content: resultParts });
     }
 
-    // Duplicate tool call detection: if the model is repeating itself, inject a stop hint
-    if (hasDuplicate) {
+    // Force stop: if tool call abuse detected, inject stop message and terminate
+    if (shouldForceStop) {
       state.messages.push({
         role: 'user',
-        content: 'You are repeating tool calls you already made. The task appears to be complete. Please provide your final summary and stop.',
+        content: 'STOP. You have exceeded the tool call limit or are repeating calls. Provide your final answer NOW without calling any more tools.',
       });
     }
 

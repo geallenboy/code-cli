@@ -89,8 +89,8 @@ describe('Prompt Orchestration', () => {
       mockExecSync.mockImplementation(() => { throw new Error('not a git repo'); });
 
       const prompt = buildSystemPrompt([]);
-      expect(prompt).toContain('Read before edit');
-      expect(prompt).toContain('Minimal changes');
+      expect(prompt).toContain('STOP WHEN DONE');
+      expect(prompt).toContain('NEVER read the same file twice');
     });
 
     it('should include git context when available', () => {
