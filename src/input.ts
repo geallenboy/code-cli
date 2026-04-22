@@ -371,7 +371,22 @@ export class MultiLineInput {
         const cursorLine = buffer.cursor.line;
         const cursorCol = buffer.cursor.col;
 
-        // 逐行重绘，在光标所在位置保存终端光标
+        // 单行优化：最常见的情况，不需要复杂的光标管理
+        if (buffer.lines.length === 1) {
+          const line = buffer.lines[0];
+          const beforeCursor = line.slice(0, cursorCol);
+          const afterCursor = line.slice(cursorCol);
+          // 写提示符 + 光标前的文本
+          process.stdout.write(promptStr + beforeCursor);
+          if (afterCursor.length > 0) {
+            // 保存光标，写剩余文本，恢复光标
+            process.stdout.write('\x1b7' + afterCursor + '\x1b8');
+          }
+          prevLineCount = 1;
+          return;
+        }
+
+        // 多行：逐行重绘，在光标位置使用 DEC save/restore
         for (let i = 0; i < buffer.lines.length; i++) {
           const prefix = i === 0 ? promptStr : continuationPrefix;
           if (i > 0) {
@@ -379,11 +394,10 @@ export class MultiLineInput {
           }
 
           if (i === cursorLine) {
-            // 光标所在行：写到光标位置，保存光标，写剩余部分
             const beforeCursor = buffer.lines[i].slice(0, cursorCol);
             const afterCursor = buffer.lines[i].slice(cursorCol);
             process.stdout.write(prefix + beforeCursor);
-            process.stdout.write('\x1b[s'); // 保存光标位置
+            process.stdout.write('\x1b7'); // DEC save cursor
             process.stdout.write(afterCursor);
           } else {
             process.stdout.write(prefix + buffer.lines[i]);
@@ -392,8 +406,8 @@ export class MultiLineInput {
 
         prevLineCount = buffer.lines.length;
 
-        // 恢复光标到保存的位置
-        process.stdout.write('\x1b[u');
+        // DEC restore cursor
+        process.stdout.write('\x1b8');
       };
 
       const cleanup = (): void => {
