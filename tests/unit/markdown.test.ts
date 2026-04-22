@@ -43,11 +43,12 @@ describe('renderMarkdown', () => {
     expect(result).toContain('npm install');
   });
 
-  it('should render code blocks in dim', () => {
+  it('should render code blocks with box border', () => {
     const input = '```\nconst x = 1;\n```';
     const result = renderMarkdown(input);
-    expect(result).toContain('\x1b[2m'); // dim
     expect(result).toContain('const x = 1;');
+    expect(result).toContain('╭');
+    expect(result).toContain('╯');
   });
 
   it('should handle plain text without modification', () => {
@@ -219,9 +220,11 @@ describe('StreamingMarkdownRenderer', () => {
     // Code block content is buffered
     expect(r1).toBe('');
     expect(r2).toBe('');
-    // Closing fence triggers rendering
+    // Closing fence triggers rendering with box border
     const r3 = renderer.push('```\n');
     expect(r3).toContain('const x = 1;');
+    expect(r3).toContain('╭');
+    expect(r3).toContain('╯');
   });
 
   it('should handle code blocks with language identifier', () => {
@@ -260,13 +263,14 @@ describe('StreamingMarkdownRenderer', () => {
     expect(result).toBe('');
   });
 
-  it('should handle code block with unknown language using dim fallback', () => {
+  it('should handle code block with unknown language using box border', () => {
     const renderer = new StreamingMarkdownRenderer();
     renderer.push('```unknownlang\n');
     renderer.push('some code\n');
     const result = renderer.push('```\n');
-    expect(result).toContain('\x1b[2m'); // dim fallback
     expect(result).toContain('some code');
+    expect(result).toContain('╭');
+    expect(result).toContain('╯');
   });
 });
 

@@ -10,7 +10,7 @@
 
 import chalk from 'chalk';
 import type { CacheStats } from './cache-tracker.js';
-import { renderToolResult as renderToolResultEnhanced } from './tool-result-renderer.js';
+import { renderBox } from './box.js';
 
 /**
  * 禁用颜色输出（--no-color 支持）
@@ -159,41 +159,70 @@ function getToolIcon(name: string): string {
 }
 
 /**
- * 打印工具调用信息（黄色 + 图标）
+ * 打印工具调用信息（边框化）
+ *
+ * 输出格式：
+ *   ╭─ 🔧 edit_file ──────────────────╮
+ *   │  file_path: src/index.ts         │
+ *   │  old_string: const x = 1;...     │
+ *   ╰─────────────────────────────────╯
+ *
  * @param name - 工具名称
  * @param input - 工具输入参数
  */
 export function printToolCall(name: string, input: Record<string, unknown>): void {
   const icon = getToolIcon(name);
-  console.log(chalk.yellow(`\n${icon} ${name}`));
-  const summary = Object.entries(input)
-    .map(([k, v]) => `  ${k}: ${typeof v === 'string' && v.length > 100 ? v.slice(0, 100) + '...' : v}`)
-    .join('\n');
-  if (summary) console.log(chalk.dim(summary));
+  const lines = Object.entries(input).map(([k, v]) => {
+    const val = typeof v === 'string' && v.length > 80 ? v.slice(0, 80) + '...' : String(v);
+    return `${k}: ${val}`;
+  });
+  const box = renderBox(`${icon} ${name}`, lines, {
+    headerStyle: chalk.yellow,
+  });
+  console.log('\n' + box);
 }
 
 /**
- * 打印工具结果（使用增强渲染器：语法高亮 + 行号 + 截断）
+ * 打印工具结果（状态行：✅/❌ + 耗时）
  * @param name - 工具名称
  * @param result - 工具执行结果
+ * @param elapsed - 工具执行耗时（毫秒）
  */
-export function printToolResult(name: string, result: string): void {
-  // 尝试从结果中提取文件路径（read_file / grep_search 等工具）
-  const filePath = extractFilePath(name, result);
-  const rendered = renderToolResultEnhanced(name, result, filePath ?? undefined);
-  console.log(chalk.dim('  ↳ ') + rendered.split('\n').join('\n    '));
+export function printToolResult(name: string, result: string, elapsed?: number): void {
+  const isError = result.startsWith('Error') || result.startsWith('Exit code:');
+  const icon = isError ? '❌' : '✅';
+  const time = elapsed != null ? ` (${(elapsed / 1000).toFixed(1)}s)` : '';
+  console.log(`  ${icon} ${name}${time}`);
 }
 
 /**
- * 从工具结果中提取文件路径
+ * 渲染工具执行状态行
+ *
+ * 执行中：⠋ edit_file src/index.ts...
+ * 成功：  ✅ edit_file (0.3s)
+ * 失败：  ❌ run_shell (1.2s)
+ *
+ * @param state - 工具执行状态
+ * @param toolName - 工具名称
+ * @param detail - 额外细节（如文件路径）
+ * @param elapsedMs - 耗时（毫秒）
+ * @returns 格式化的状态行字符串
  */
-function extractFilePath(_name: string, result: string): string | null {
-  // 尝试匹配常见的文件路径模式
-  const match = result.match(/^((?:\/|\.\/|\.\.\/|[a-zA-Z]:[\\/])?[\w./-]+\.\w+)/);
-  if (match?.[1] && match[1].includes('.')) {
-    return match[1];
+export function renderToolStatus(
+  state: 'running' | 'success' | 'error',
+  toolName: string,
+  detail?: string,
+  elapsedMs?: number,
+): string {
+  const time = elapsedMs != null ? ` (${(elapsedMs / 1000).toFixed(1)}s)` : '';
+  switch (state) {
+    case 'running':
+      return `  ⠋ ${toolName}${detail ? ' ' + detail : ''}...`;
+    case 'success':
+      return `  ✅ ${toolName}${time}`;
+    case 'error':
+      return `  ❌ ${toolName}${time}`;
   }
-  return null;
 }
 
 /**

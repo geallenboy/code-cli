@@ -16,6 +16,7 @@ import {
   printCompactNotification,
   disableColor,
   Spinner,
+  renderToolStatus,
 } from '../../src/ui.js';
 
 describe('UI Output', () => {
@@ -24,11 +25,13 @@ describe('UI Output', () => {
   });
 
   describe('printToolCall', () => {
-    it('should print tool name with icon', () => {
+    it('should print tool name with box drawing border', () => {
       const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
       printToolCall('read_file', { file_path: 'test.ts' });
       const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
       expect(output).toContain('read_file');
+      expect(output).toContain('╭');
+      expect(output).toContain('╯');
     });
 
     it('should truncate long input values', () => {
@@ -38,23 +41,46 @@ describe('UI Output', () => {
       const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
       expect(output).toContain('...');
     });
+
+    it('should display tool parameters inside box', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printToolCall('edit_file', { file_path: 'src/index.ts', old_string: 'foo', new_string: 'bar' });
+      const output = spy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain('file_path');
+      expect(output).toContain('old_string');
+      expect(output).toContain('new_string');
+    });
   });
 
   describe('printToolResult', () => {
-    it('should render tool results', () => {
+    it('should show success icon for normal results', () => {
       const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const longResult = 'a'.repeat(600);
-      printToolResult('read_file', longResult);
+      printToolResult('read_file', 'file content here');
       const output = spy.mock.calls.map((c) => String(c[0])).join('');
-      // Enhanced renderer processes the result (may add line numbers, etc.)
-      expect(output).toBeDefined();
+      expect(output).toContain('✅');
+      expect(output).toContain('read_file');
     });
 
-    it('should not truncate short results', () => {
+    it('should show error icon for error results', () => {
       const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      printToolResult('read_file', 'short result');
+      printToolResult('run_shell', 'Error: command not found');
       const output = spy.mock.calls.map((c) => String(c[0])).join('');
-      expect(output).toContain('short result');
+      expect(output).toContain('❌');
+      expect(output).toContain('run_shell');
+    });
+
+    it('should show elapsed time when provided', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printToolResult('edit_file', 'success', 1500);
+      const output = spy.mock.calls.map((c) => String(c[0])).join('');
+      expect(output).toContain('(1.5s)');
+    });
+
+    it('should not show time when elapsed is not provided', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printToolResult('read_file', 'content');
+      const output = spy.mock.calls.map((c) => String(c[0])).join('');
+      expect(output).not.toContain('(');
     });
   });
 
@@ -208,6 +234,35 @@ describe('UI Output', () => {
     it('should be callable without errors', () => {
       // Just verify it doesn't throw
       expect(() => disableColor()).not.toThrow();
+    });
+  });
+
+  describe('renderToolStatus', () => {
+    it('should render running state with spinner', () => {
+      const result = renderToolStatus('running', 'edit_file', 'src/index.ts');
+      expect(result).toContain('⠋');
+      expect(result).toContain('edit_file');
+      expect(result).toContain('src/index.ts');
+    });
+
+    it('should render success state with checkmark and time', () => {
+      const result = renderToolStatus('success', 'edit_file', undefined, 300);
+      expect(result).toContain('✅');
+      expect(result).toContain('edit_file');
+      expect(result).toContain('(0.3s)');
+    });
+
+    it('should render error state with cross and time', () => {
+      const result = renderToolStatus('error', 'run_shell', undefined, 1200);
+      expect(result).toContain('❌');
+      expect(result).toContain('run_shell');
+      expect(result).toContain('(1.2s)');
+    });
+
+    it('should omit time when not provided', () => {
+      const result = renderToolStatus('success', 'read_file');
+      expect(result).toContain('✅');
+      expect(result).not.toContain('(');
     });
   });
 });

@@ -77,4 +77,9 @@ export class Agent {
   get tokenUsage(): TokenUsage {
     return this.engine.tokenUsage;
   }
+
+  /** 获取 API 计时统计 */
+  get apiTimingStats(): { callCount: number; totalTime: number } {
+    return this.engine.apiTimingStats;
+  }
 }

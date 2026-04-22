@@ -8,6 +8,7 @@
  */
 
 import chalk from 'chalk';
+import { renderBox } from '../../box.js';
 
 /** 权限选择 */
 export type PermissionChoice = 'yes' | 'no' | 'always';
@@ -87,7 +88,7 @@ export class PermissionDialog {
   }
 
   /**
-   * 渲染增强版权限对话框
+   * 渲染增强版权限对话框（使用 Box Drawing 边框）
    *
    * @param options - 对话框选项
    * @returns 格式化的对话框文本
@@ -99,33 +100,29 @@ export class PermissionDialog {
     const riskColor = getRiskColor(options.riskLevel);
     const lines: string[] = [];
 
-    // 标题
-    lines.push(chalk.yellow.bold('⚠ Permission Required'));
-    lines.push('');
-
     // 工具信息
-    lines.push(chalk.white(`  Tool: ${chalk.bold(options.toolName)}`));
-    lines.push(chalk.white(`  Risk: ${riskColor(options.riskLevel)} - ${options.riskExplanation}`));
+    lines.push(`Tool: ${options.toolName}`);
+    lines.push(`Risk: ${riskColor(options.riskLevel)} - ${options.riskExplanation}`);
 
     // 建议规则
     if (options.suggestedRule) {
       lines.push('');
-      lines.push(chalk.dim(`  Suggested rule: ${options.suggestedRule}`));
+      lines.push(chalk.dim(`Suggested rule: ${options.suggestedRule}`));
     }
 
     // 选项 - 延迟期间使用 dim 渲染
     lines.push('');
     if (this.isInDelay()) {
       lines.push(
-        chalk.dim(`  [y]es  [n]o  [a]lways`),
+        chalk.dim(`[y]es  [n]o  [a]lways`),
       );
     } else {
       lines.push(
-        `  ${chalk.green('[y]')}es  ${chalk.red('[n]')}o  ${chalk.cyan('[a]')}lways`,
+        `${chalk.green('[y]')}es  ${chalk.red('[n]')}o  ${chalk.cyan('[a]')}lways`,
       );
     }
 
-    return lines.join('\n');
+    return renderBox('⚠ Permission Required', lines);
   }
 
   /**

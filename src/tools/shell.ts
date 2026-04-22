@@ -8,7 +8,7 @@
  * 简化：正则检测 + 用户确认（2 层防御）
  */
 
-import { execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 
 /** 危险命令模式列表 */
 export const DANGEROUS_PATTERNS: RegExp[] = [
@@ -153,4 +153,83 @@ export function executeShellCommand(command: string, timeout = 30_000): string {
     const message = error instanceof Error ? error.message : String(error);
     return `Error executing command: ${message}`;
   }
+}
+
+
+/**
+ * 流式执行 Shell 命令。
+ *
+ * 使用 spawn 替代 execSync，实时将 stdout/stderr 写入终端（带 2 空格缩进）。
+ * 命令完成后返回完整 stdout 内容。
+ *
+ * @param command - Shell 命令
+ * @param timeout - 超时（毫秒），默认 30000
+ * @returns 完整 stdout 内容
+ */
+export async function executeShellStreaming(
+  command: string,
+  timeout = 30_000,
+): Promise<string> {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn('sh', ['-c', command], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env },
+      });
+    } catch {
+      // spawn itself failed — fallback to execSync
+      resolve(executeShellCommand(command, timeout));
+      return;
+    }
+
+    let stdout = '';
+    let stderr = '';
+    let killed = false;
+    const MAX_OUTPUT = 5 * 1024 * 1024;
+
+    const timer = setTimeout(() => {
+      killed = true;
+      child.kill('SIGTERM');
+    }, timeout);
+
+    child.stdout?.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      stdout += text;
+      // 实时输出，每行加 2 空格缩进
+      const lines = text.split('\n');
+      const indented = lines.map((l: string) => '  ' + l).join('\n');
+      process.stdout.write(indented);
+      // 5MB 上限检查
+      if (stdout.length > MAX_OUTPUT) {
+        killed = true;
+        child.kill('SIGTERM');
+      }
+    });
+
+    child.stderr?.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      stderr += text;
+      const lines = text.split('\n');
+      const indented = lines.map((l: string) => '  ' + l).join('\n');
+      process.stderr.write(indented);
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (killed) {
+        resolve(`Command timed out after ${timeout}ms\n\nPartial output:\n${stdout}`);
+      } else if (code !== 0) {
+        resolve(`Exit code: ${code}\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`);
+      } else {
+        resolve(stdout);
+      }
+    });
+
+    child.on('error', () => {
+      clearTimeout(timer);
+      // 回退到 execSync
+      resolve(executeShellCommand(command, timeout));
+    });
+  });
 }

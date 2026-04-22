@@ -22,6 +22,7 @@ import type { McpManager } from './mcp/index.js';
 import { MultiLineInput } from './input.js';
 import { detectRecoverableSession, formatRecoveryPrompt, parseRecoveryAnswer } from './session-recovery.js';
 import { renderWelcomeScreen } from './welcome.js';
+import { renderBox, renderSeparator } from './box.js';
 
 /**
  * 解析命令行参数。
@@ -147,14 +148,13 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
       agent.config.model ?? 'default',
     );
     for (const line of welcomeLines) {
-      console.log(chalk.dim(line));
+      console.log(line);
     }
     console.log();
   } catch {
     // Welcome screen is best-effort; ignore errors
   }
 
-  console.log(chalk.green('Code CLI') + chalk.dim(' — type your message, /clear, /cost, or Ctrl+C to exit'));
   console.log(chalk.dim('  Alt+Enter for newline, Enter to submit'));
   console.log();
 
@@ -202,6 +202,12 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
           case '/cost': {
             const usage = agent.tokenUsage;
             printCost(usage.inputTokens, usage.outputTokens);
+            // Show API timing stats if available
+            const apiStats = agent.apiTimingStats;
+            if (apiStats.callCount > 0) {
+              const avgMs = apiStats.totalTime / apiStats.callCount;
+              console.log(chalk.cyan(`API calls: ${apiStats.callCount}, avg response: ${(avgMs / 1000).toFixed(1)}s`));
+            }
             continue;
           }
           case '/compact':
@@ -236,6 +242,31 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
           case '/rules': {
             console.log(chalk.cyan('Permission Rules:'));
             console.log(chalk.dim('  (No rules configured)'));
+            continue;
+          }
+          case '/help': {
+            const commandLines = [
+              '/clear    Clear conversation history',
+              '/cost     Show token usage and cost',
+              '/compact  Compress context',
+              '/plan     Enter plan mode',
+              '/status   Show session status',
+              '/memory   View memory list',
+              '/remember Save a memory',
+              '/skill    View/run skills',
+              '/task     Task management',
+              '/help     Show this help',
+            ];
+            const shortcutLines = [
+              'Enter       Submit input',
+              'Alt+Enter   Insert newline',
+              'Ctrl+C      Abort / double to exit',
+              'Ctrl+R      Search history',
+              'Tab         File path completion',
+            ];
+            const box1 = renderBox('Commands', commandLines);
+            const box2 = renderBox('Shortcuts', shortcutLines);
+            console.log('\n' + box1 + '\n' + box2);
             continue;
           }
           case '/mcp': {
@@ -303,7 +334,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
               if (skill) {
                 console.log(chalk.cyan(`[Skill: ${skill.name}] ${skill.description}`));
                 await agent.chat(skill.prompt);
-                console.log();
+                console.log(renderSeparator());
               }
               continue;
             }
@@ -321,7 +352,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
               if (builtin) {
                 console.log(chalk.cyan(`[Skill: ${builtin.name}] ${builtin.description}`));
                 await agent.chat(builtin.prompt);
-                console.log();
+                console.log(renderSeparator());
                 continue;
               }
               // Check custom skills
@@ -329,7 +360,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
               if (prompt) {
                 console.log(chalk.cyan(`[Skill: ${skillName}]`));
                 await agent.chat(prompt);
-                console.log();
+                console.log(renderSeparator());
               } else {
                 // List available skills
                 const customs = loadSkills();
@@ -403,7 +434,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
                 }
                 console.log(chalk.cyan(`Running task ${taskId}...`));
                 await agent.chat(`Execute task: ${taskId}. Find the task details and complete it.`);
-                console.log();
+                console.log(renderSeparator());
                 continue;
               }
 
@@ -418,7 +449,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
 
       // Regular message — send to agent
       await agent.chat(trimmed);
-      console.log(); // Blank line after response
+      console.log(renderSeparator());
     } catch (error) {
       if (error instanceof Error && (error.message === 'readline closed' || error.message === 'input destroyed')) {
         break;

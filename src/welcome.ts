@@ -12,6 +12,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { execSync } from 'node:child_process';
+import { renderBox } from './box.js';
 
 /** 项目上下文信息 */
 export interface ProjectContext {
@@ -157,12 +158,53 @@ export function collectProjectContext(
 }
 
 /**
- * 格式化欢迎屏幕文本（纯文本，无 ANSI）。
+ * 格式化欢迎屏幕文本。
+ *
+ * 使用 renderBox 生成边框化欢迎屏幕，包含项目信息和快捷键提示。
+ * 终端宽度 < 40 列时回退到无边框格式。
  *
  * @param ctx - 项目上下文
  * @returns 欢迎屏幕文本行数组
  */
 export function formatWelcomeScreen(ctx: ProjectContext): string[] {
+  const termWidth = process.stdout.columns ?? 80;
+
+  // 窄终端回退
+  if (termWidth < 40) {
+    return formatWelcomeScreenSimple(ctx);
+  }
+
+  const infoLines: string[] = [];
+
+  // Project name + git info
+  let projectLine = `📁 ${ctx.name}`;
+  if (ctx.gitBranch) {
+    projectLine += `  🔀 ${ctx.gitBranch}`;
+  }
+  infoLines.push(projectLine);
+
+  // Uncommitted changes
+  if (ctx.gitBranch && ctx.uncommittedChanges !== null && ctx.uncommittedChanges > 0) {
+    infoLines.push(`   ${ctx.uncommittedChanges} uncommitted change${ctx.uncommittedChanges === 1 ? '' : 's'}`);
+  }
+
+  // Provider + model
+  infoLines.push(`🤖 ${ctx.provider} / ${ctx.model}`);
+  infoLines.push('');
+  infoLines.push('Enter submit · Alt+Enter newline');
+  infoLines.push('Ctrl+C abort · /help commands');
+
+  const box = renderBox('Code CLI', infoLines, { width: Math.min(termWidth, 50) });
+  return box.split('\n');
+}
+
+/**
+ * 格式化欢迎屏幕（简单版，窄终端回退）。
+ *
+ * @param ctx - 项目上下文
+ * @returns 欢迎屏幕文本行数组
+ */
+function formatWelcomeScreenSimple(ctx: ProjectContext): string[] {
   const lines: string[] = [];
 
   // Project name

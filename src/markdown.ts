@@ -14,15 +14,14 @@
  */
 
 import chalk from 'chalk';
-import { highlight, supportsLanguage } from 'cli-highlight';
 import { renderEnhancedDiff } from './diff-renderer.js';
+import { renderCodeBlock as renderCodeBlockBox } from './box.js';
 
 // ANSI escape codes
 const BOLD = '\x1b[1m';
 const UNDERLINE = '\x1b[4m';
 const CYAN = '\x1b[36m';
 const YELLOW = '\x1b[33m';
-const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
 
 /**
@@ -34,33 +33,6 @@ const RESET = '\x1b[0m';
  */
 export function getColorLevel(): number {
   return chalk.level;
-}
-
-/**
- * Highlight code using cli-highlight with language detection.
- * Falls back to dim rendering if language is not supported.
- */
-function highlightCode(code: string, lang?: string): string {
-  if (!lang || !supportsLanguage(lang)) {
-    // Fallback: dim rendering for unknown languages
-    return code
-      .split('\n')
-      .map((line) => `${DIM}${line}${RESET}`)
-      .join('\n');
-  }
-
-  try {
-    // Use cli-highlight for syntax highlighting
-    // When terminal doesn't support 256 colors, cli-highlight
-    // automatically uses chalk which respects chalk.level
-    return highlight(code, { language: lang });
-  } catch {
-    // Fallback on any highlight error
-    return code
-      .split('\n')
-      .map((line) => `${DIM}${line}${RESET}`)
-      .join('\n');
-  }
 }
 
 /**
@@ -237,14 +209,13 @@ export class StreamingMarkdownRenderer {
         this.codeBlockLines = [];
         return null; // Don't render the opening fence yet
       } else {
-        // Closing fence — render the accumulated code block
+        // Closing fence — render the accumulated code block with box border
         this.inCodeBlock = false;
         const code = this.codeBlockLines.join('\n');
-        const highlighted = highlightCode(code, this.codeBlockLang);
+        const lang = this.codeBlockLang || 'code';
         this.codeBlockLang = '';
         this.codeBlockLines = [];
-        // Return the full code block with fences
-        return `${DIM}\`\`\`${RESET}\n${highlighted}\n${DIM}\`\`\`${RESET}`;
+        return renderCodeBlockBox(lang, code);
       }
     }
 

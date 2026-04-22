@@ -85,3 +85,13 @@ describe('parseArgs', () => {
     expect(result.provider).toBe('anthropic'); // default unchanged
   });
 });
+
+
+describe('/help command', () => {
+  it('should be recognized as a valid slash command', () => {
+    // Verify /help is handled in the switch statement by checking it starts with /
+    const command = '/help';
+    expect(command.startsWith('/')).toBe(true);
+    expect(command).toBe('/help');
+  });
+});

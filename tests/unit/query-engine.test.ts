@@ -51,6 +51,19 @@ describe('QueryEngine', () => {
     expect(engine.tokenUsage.outputTokens).toBe(5);
   });
 
+  it('should render status bar after chat completes', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const engine = new QueryEngine({
+      provider: 'anthropic', model: 'test', yolo: false, effectiveContextWindow: 100000,
+    });
+    await engine.chat('hello');
+    const allOutput = writeSpy.mock.calls.map((c) => String(c[0])).join('');
+    // Status bar should contain tokens and cost info
+    expect(allOutput).toContain('tokens');
+    expect(allOutput).toContain('$');
+  });
+
   it('should push user message to history', async () => {
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);

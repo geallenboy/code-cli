@@ -13,7 +13,7 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import { readFileContent, grepSearch, listFiles } from './file-ops.js';
 import { writeFile, editFile } from './editor.js';
-import { executeShellCommand, needsConfirmation } from './shell.js';
+import { executeShellStreaming, needsConfirmation } from './shell.js';
 import { webFetchTool, webSearchTool } from './web.js';
 
 /**
@@ -224,7 +224,7 @@ export function getToolDefinitions(ctx?: ToolContext, extraTools?: Record<string
             ctx.confirmedCommands.add(command);
           }
         }
-        return truncateResult(executeShellCommand(command, timeout));
+        return truncateResult(await executeShellStreaming(command, timeout));
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         return `Error: ${message}`;

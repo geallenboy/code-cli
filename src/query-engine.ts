@@ -20,6 +20,7 @@ import type { ToolContext } from './tools/index.js';
 import * as readline from 'node:readline';
 import { PermissionDialog } from './ink/components/permission-dialog.js';
 import type { RiskLevel } from './ink/components/permission-dialog.js';
+import { renderStatusLine, formatTokenCount, formatCost } from './box.js';
 
 /**
  * 在终端中提示用户确认操作。
@@ -72,6 +73,8 @@ export class QueryEngine {
   private abortController: AbortController | null = null;
   private totalInputTokens = 0;
   private totalOutputTokens = 0;
+  private apiCallCount = 0;
+  private totalApiTime = 0;
   private _confirmedCommands: Set<string> = new Set();
   private _isProcessing = false;
   private readonly _config: QueryEngineConfig;
@@ -95,6 +98,7 @@ export class QueryEngine {
   async chat(userMessage: string): Promise<void> {
     this._isProcessing = true;
     this.abortController = new AbortController();
+    const chatStartTime = performance.now();
 
     try {
       this._messages.push({ role: 'user', content: userMessage });
@@ -122,6 +126,8 @@ export class QueryEngine {
       spinner.setMode('requesting');
       spinner.start();
       let firstTextReceived = false;
+      let toolCallStartTime = 0;
+      let apiCallStartTime = performance.now();
 
       while (true) {
         const { value, done } = await generator.next();
@@ -154,6 +160,7 @@ export class QueryEngine {
           }
           case 'tool_call':
             spinner.stop();
+            toolCallStartTime = Date.now();
             printToolCall(event.toolName, event.input);
             // Restart spinner in requesting mode for next API call
             firstTextReceived = false;
@@ -161,11 +168,24 @@ export class QueryEngine {
             spinner.start();
             break;
           case 'tool_result':
-            printToolResult(event.toolName, event.result);
+            {
+              const toolElapsed = toolCallStartTime > 0 ? Date.now() - toolCallStartTime : undefined;
+              toolCallStartTime = 0;
+              printToolResult(event.toolName, event.result, toolElapsed);
+            }
             break;
           case 'usage':
             this.totalInputTokens += event.inputTokens;
             this.totalOutputTokens += event.outputTokens;
+            // Track API call timing: each usage event = one API call completed
+            {
+              const now = performance.now();
+              if (apiCallStartTime > 0) {
+                this.totalApiTime += now - apiCallStartTime;
+              }
+              this.apiCallCount++;
+              apiCallStartTime = now; // Reset for next API call
+            }
             break;
           case 'compact':
             // Could print a notification here
@@ -179,6 +199,22 @@ export class QueryEngine {
         }
       }
     } finally {
+      // Render per-turn status bar
+      try {
+        const elapsed = ((performance.now() - chatStartTime) / 1000).toFixed(1);
+        const totalTokens = this.totalInputTokens + this.totalOutputTokens;
+        const tokens = formatTokenCount(totalTokens);
+        const cost = formatCost(this.estimateCost());
+        const parts = [`${tokens} tokens`, cost, `${elapsed}s`];
+        if (this.apiCallCount > 0) {
+          const avgApi = (this.totalApiTime / this.apiCallCount / 1000).toFixed(1);
+          parts.push(`${avgApi}s avg API`);
+        }
+        const statusLine = renderStatusLine(parts);
+        process.stdout.write('\n' + statusLine + '\n');
+      } catch {
+        // Status bar is best-effort
+      }
       saveSession(this.sessionId, {
         id: this.sessionId,
         startTime: new Date().toISOString(),
@@ -244,6 +280,14 @@ export class QueryEngine {
     return {
       inputTokens: this.totalInputTokens,
       outputTokens: this.totalOutputTokens,
+    };
+  }
+
+  /** 获取 API 计时统计 */
+  get apiTimingStats(): { callCount: number; totalTime: number } {
+    return {
+      callCount: this.apiCallCount,
+      totalTime: this.totalApiTime,
     };
   }
 }

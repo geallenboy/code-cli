@@ -58,7 +58,7 @@ describe('PermissionDialog', () => {
   });
 
   describe('renderEnhanced', () => {
-    it('should show risk level with color coding', () => {
+    it('should show risk level with color coding and box border', () => {
       const dialog = new PermissionDialog();
 
       const lowResult = dialog.renderEnhanced({
@@ -67,6 +67,8 @@ describe('PermissionDialog', () => {
         riskExplanation: 'Read only',
       });
       expect(stripAnsi(lowResult)).toContain('LOW');
+      expect(stripAnsi(lowResult)).toContain('╭');
+      expect(stripAnsi(lowResult)).toContain('╯');
       // Should have ANSI formatting (result differs from stripped)
       expect(lowResult).not.toBe(stripAnsi(lowResult));
 
@@ -114,6 +116,17 @@ describe('PermissionDialog', () => {
       });
       const stripped = stripAnsi(result);
       expect(stripped).toContain('Suggested rule: allow npm *');
+    });
+
+    it('should contain Permission Required in box header', () => {
+      const dialog = new PermissionDialog();
+      const result = dialog.renderEnhanced({
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        riskExplanation: 'Dangerous',
+      });
+      const stripped = stripAnsi(result);
+      expect(stripped).toContain('Permission Required');
     });
   });
 
