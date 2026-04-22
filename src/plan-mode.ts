@@ -33,6 +33,7 @@ const READ_ONLY_COMMANDS = [
   'git diff',
   'git status',
   'git show',
+  'git branch',
   'cat ',
   'ls ',
   'head ',
@@ -40,6 +41,12 @@ const READ_ONLY_COMMANDS = [
   'wc ',
   'find ',
   'tree ',
+  'echo ',
+  'pwd',
+  'which ',
+  'node -v',
+  'npm -v',
+  'pnpm -v',
 ];
 
 /**
@@ -97,7 +104,18 @@ export function getPlanModeTools(): string[] {
  * @returns 是否为只读命令
  */
 export function isReadOnlyShellCommand(cmd: string): boolean {
-  return READ_ONLY_COMMANDS.some(prefix => cmd.trimStart().startsWith(prefix));
+  const trimmed = cmd.trimStart();
+
+  // Reject any command with output redirection (>, >>)
+  if (/[^-]>/.test(trimmed) || trimmed.includes('>>')) return false;
+
+  // Handle compound commands: "cd /path && cat file" → check each part
+  const parts = trimmed.split(/\s*&&\s*|\s*;\s*/);
+  return parts.every(part => {
+    const p = part.trimStart();
+    if (p.startsWith('cd ')) return true;
+    return READ_ONLY_COMMANDS.some(prefix => p.startsWith(prefix));
+  });
 }
 
 /**
