@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "code-cli": "./dist/index.js"
+    "code-cli": "dist/index.js"
   },
   "files": [
     "dist/",
@@ -27,7 +27,9 @@
     "format": "prettier --write src/ tests/",
     "format:check": "prettier --check src/ tests/",
     "typecheck": "tsc --noEmit",
-    "check-all": "pnpm run typecheck && pnpm run lint && pnpm test"
+    "check-all": "pnpm run typecheck && pnpm run lint && pnpm test",
+    "prepublishOnly": "pnpm run check-all && pnpm run build",
+    "release": "pnpm run prepublishOnly && npm publish --access public"
   },
   "keywords": [
     "cli",
