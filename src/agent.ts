@@ -23,7 +23,7 @@ export class Agent {
   private engine: QueryEngine;
 
   constructor(config: AgentConfig) {
-    const engineConfig: QueryEngineConfig = { ...config, maxTurns: 50 };
+    const engineConfig: QueryEngineConfig = { ...config, maxTurns: 25 };
     this.engine = new QueryEngine(engineConfig);
   }
 

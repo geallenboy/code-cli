@@ -166,6 +166,10 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
   );
   const systemPrompt = buildSystemPrompt(toolDescriptions);
 
+  // Duplicate tool call detection
+  const recentToolCalls: string[] = [];
+  const MAX_DUPLICATE_COUNT = 2; // Allow same call at most twice
+
   while (true) {
     // Check abort signal
     if (params.abortSignal?.aborted) {
@@ -307,13 +311,23 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
       return { reason: 'complete' as const, lastAssistantText: text || undefined };
     }
 
-    // Yield tool events
+    // Yield tool events + duplicate detection
+    let hasDuplicate = false;
     for (const tc of toolCalls) {
       yield {
         type: 'tool_call' as const,
         toolName: tc.toolName,
         input: tc.input as Record<string, unknown>,
       };
+      // Track for duplicate detection
+      const callKey = `${tc.toolName}:${JSON.stringify(tc.input)}`;
+      const duplicateCount = recentToolCalls.filter(k => k === callKey).length;
+      if (duplicateCount >= MAX_DUPLICATE_COUNT) {
+        hasDuplicate = true;
+      }
+      recentToolCalls.push(callKey);
+      // Keep only last 10 calls
+      if (recentToolCalls.length > 10) recentToolCalls.shift();
     }
     for (const tr of toolResults) {
       const outputStr = typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output);
@@ -332,6 +346,14 @@ export async function* query(params: QueryParams): AsyncGenerator<StreamEvent, T
         },
       }));
       state.messages.push({ role: 'tool', content: resultParts });
+    }
+
+    // Duplicate tool call detection: if the model is repeating itself, inject a stop hint
+    if (hasDuplicate) {
+      state.messages.push({
+        role: 'user',
+        content: 'You are repeating tool calls you already made. The task appears to be complete. Please provide your final summary and stop.',
+      });
     }
 
     // === Three-level compression pipeline ===
