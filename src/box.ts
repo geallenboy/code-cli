@@ -287,7 +287,9 @@ export function renderStatusLine(parts: string[], width?: number): string {
   const totalFill = w - contentWidth - 2;
   const leftFill = Math.floor(totalFill / 2);
   const rightFill = totalFill - leftFill;
-  return chalk.dim('─'.repeat(leftFill) + ' ' + content + ' ' + '─'.repeat(rightFill));
+  // Use dim for fill characters but slightly brighter (gray) for content text
+  // so the status info stands out from the decorative line
+  return chalk.dim('─'.repeat(leftFill)) + ' ' + chalk.gray(content) + ' ' + chalk.dim('─'.repeat(rightFill));
 }
 
 /**

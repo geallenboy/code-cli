@@ -226,11 +226,16 @@ export function renderToolStatus(
 }
 
 /**
- * 打印 AI 助手文本（流式，绿色）
- * @param text - 文本内容
+ * 打印 AI 助手文本（流式）
+ *
+ * 直接输出文本，不添加颜色包裹。
+ * StreamingMarkdownRenderer 已经处理了 Markdown 格式化
+ * （headers 加粗、代码块黄色高亮等），额外的颜色包裹会覆盖这些格式。
+ *
+ * @param text - 文本内容（可能已包含 ANSI 格式化）
  */
 export function printAssistantText(text: string): void {
-  process.stdout.write(chalk.green(text));
+  process.stdout.write(text);
 }
 
 /**

@@ -136,7 +136,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
   process.on('SIGINT', sigintHandler);
 
   const prompt = (): Promise<string> => {
-    const indicator = planState.active ? chalk.magenta('[PLAN]> ') : chalk.cyan('> ');
+    const indicator = planState.active ? chalk.magenta('[PLAN]> ') : chalk.bold.cyan('❯ ');
     return multiLineInput.prompt(indicator);
   };
 

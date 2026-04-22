@@ -167,7 +167,11 @@ export function collectProjectContext(
  * @returns 欢迎屏幕文本行数组
  */
 export function formatWelcomeScreen(ctx: ProjectContext): string[] {
-  const termWidth = process.stdout.columns ?? 80;
+  // Use a safe default when process.stdout.columns is undefined (e.g. piped output,
+  // some CI environments, or terminals that don't report width).
+  const termWidth = (typeof process.stdout.columns === 'number' && process.stdout.columns > 0)
+    ? process.stdout.columns
+    : 80;
 
   // 窄终端回退
   if (termWidth < 40) {
@@ -194,7 +198,16 @@ export function formatWelcomeScreen(ctx: ProjectContext): string[] {
   infoLines.push('Enter submit · Alt+Enter newline');
   infoLines.push('Ctrl+C abort · /help commands');
 
-  const box = renderBox('Code CLI', infoLines, { width: Math.min(termWidth, 50) });
+  const boxWidth = Math.min(termWidth, 50);
+  const box = renderBox('Code CLI', infoLines, { width: boxWidth });
+
+  // Verify box was actually generated with border characters.
+  // If renderBox returned plain text (e.g. due to extremely narrow width),
+  // fall back to simple format.
+  if (!box.includes('╭')) {
+    return formatWelcomeScreenSimple(ctx);
+  }
+
   return box.split('\n');
 }
 
