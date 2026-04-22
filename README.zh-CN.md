@@ -19,13 +19,13 @@
 ## 安装
 
 ```bash
-npm install -g code-cli
+npm install -g @garron/code-cli
 ```
 
 或直接运行：
 
 ```bash
-npx code-cli
+npx @garron/code-cli
 ```
 
 需要 Node.js 18+。

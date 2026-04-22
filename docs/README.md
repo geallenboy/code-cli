@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 742 个单元测试
+pnpm test                      # 1030 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -191,7 +191,7 @@ code-cli/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 742 个单元测试
+pnpm test               # 运行 1030 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -240,14 +240,14 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 742 |
+| 单元测试 | 1030 |
 | 端到端测试 | 27 |
-| 源文件 | 40+ |
+| 源文件 | 60+ |
 | 工具 | 6 + agent + MCP |
 | 提供商 | 5 |
-| 开发文档 | 27 篇 |
+| 开发文档 | 30+ 篇 |
 | 测试文档 | 9 篇 |
-| Git 标签 | v0.1.0 → v3.0.0 (15 个) |
+| Git 标签 | v0.1.0 → v3.3.0 (18 个) |
 | Phase | 15 |
 | Task | 67 |
 
