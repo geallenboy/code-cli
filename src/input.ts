@@ -10,6 +10,7 @@
 
 import * as readline from 'node:readline';
 import { handleTabCompletion } from './tab-completer.js';
+import { visibleWidth } from './box.js';
 import {
   createSearchState,
   searchAppendChar,
@@ -390,7 +391,7 @@ export class MultiLineInput {
         }
 
         const prefix = cursorLine === 0 ? promptStr : continuationPrefix;
-        const targetCol = prefix.length + cursorCol + 1;
+        const targetCol = visibleWidth(prefix) + cursorCol + 1;
         process.stdout.write(`\x1b[${targetCol}G`);
       };
 
