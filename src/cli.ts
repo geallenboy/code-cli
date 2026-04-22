@@ -150,13 +150,9 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
     for (const line of welcomeLines) {
       console.log(line);
     }
-    console.log();
   } catch {
     // Welcome screen is best-effort; ignore errors
   }
-
-  console.log(chalk.dim('  Alt+Enter for newline, Enter to submit'));
-  console.log();
 
   // Check for recoverable session before entering REPL loop
   try {
@@ -172,12 +168,9 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
       });
       if (parseRecoveryAnswer(answer)) {
         console.log(chalk.dim('Resuming session...'));
-        // The agent's --resume flag handles actual restoration
-        // We just signal intent here
       } else {
         console.log(chalk.dim('Starting new session.'));
       }
-      console.log();
     }
   } catch {
     // Session recovery is best-effort; ignore errors
