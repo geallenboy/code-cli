@@ -1,5 +1,5 @@
 {
-  "name": "@garron/code-cli",
+  "name": "@geallenboy/code-cli",
   "version": "3.3.0",
   "description": "A minimal CLI programming agent inspired by Claude Code",
   "type": "module",

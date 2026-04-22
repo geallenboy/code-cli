@@ -19,13 +19,13 @@ A terminal-based AI programming assistant inspired by Claude Code. Chat with an 
 ## Install
 
 ```bash
-npm install -g @garron/code-cli
+npm install -g @geallenboy/code-cli
 ```
 
 Or run directly:
 
 ```bash
-npx @garron/code-cli
+npx @geallenboy/code-cli
 ```
 
 Requires Node.js 18+.
