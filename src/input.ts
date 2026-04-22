@@ -10,7 +10,6 @@
 
 import * as readline from 'node:readline';
 import { handleTabCompletion } from './tab-completer.js';
-import { visibleWidth } from './box.js';
 import {
   createSearchState,
   searchAppendChar,
@@ -362,37 +361,39 @@ export class MultiLineInput {
 
       /** 渲染（带行数追踪） */
       const renderWithTracking = (): void => {
-        // 清除之前渲染的所有行
+        // 清除之前渲染的所有行：移到第一行，逐行清除
         let clearSeq = '\r\x1b[K';
         for (let i = 1; i < prevLineCount; i++) {
           clearSeq = '\x1b[A\r\x1b[K' + clearSeq;
         }
         process.stdout.write(clearSeq);
 
-        // 重绘所有行
+        const cursorLine = buffer.cursor.line;
+        const cursorCol = buffer.cursor.col;
+
+        // 逐行重绘，在光标所在位置保存终端光标
         for (let i = 0; i < buffer.lines.length; i++) {
           const prefix = i === 0 ? promptStr : continuationPrefix;
-          const lineContent = prefix + buffer.lines[i];
           if (i > 0) {
             process.stdout.write('\n');
           }
-          process.stdout.write(lineContent);
+
+          if (i === cursorLine) {
+            // 光标所在行：写到光标位置，保存光标，写剩余部分
+            const beforeCursor = buffer.lines[i].slice(0, cursorCol);
+            const afterCursor = buffer.lines[i].slice(cursorCol);
+            process.stdout.write(prefix + beforeCursor);
+            process.stdout.write('\x1b[s'); // 保存光标位置
+            process.stdout.write(afterCursor);
+          } else {
+            process.stdout.write(prefix + buffer.lines[i]);
+          }
         }
 
         prevLineCount = buffer.lines.length;
 
-        // 将光标移到正确位置
-        const cursorLine = buffer.cursor.line;
-        const cursorCol = buffer.cursor.col;
-        const lastLine = buffer.lines.length - 1;
-
-        if (cursorLine < lastLine) {
-          process.stdout.write(`\x1b[${lastLine - cursorLine}A`);
-        }
-
-        const prefix = cursorLine === 0 ? promptStr : continuationPrefix;
-        const targetCol = visibleWidth(prefix) + cursorCol + 1;
-        process.stdout.write(`\x1b[${targetCol}G`);
+        // 恢复光标到保存的位置
+        process.stdout.write('\x1b[u');
       };
 
       const cleanup = (): void => {
