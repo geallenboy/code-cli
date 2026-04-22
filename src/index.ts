@@ -19,24 +19,41 @@ import { validateApiKey, getDefaultModel, getContextWindow } from './provider.js
 import { ConfigurationError } from './errors.js';
 import { loadLatestSession } from './session.js';
 import { McpManager } from './mcp/index.js';
+import { loadConfig, applyConfig, runSetup, getMissingKeyMessage } from './config.js';
 import type { ModelMessage } from 'ai';
 
 async function main(): Promise<void> {
   const args = parseArgs();
+
+  // Handle --setup: run interactive setup wizard and exit
+  if (args.setup) {
+    await runSetup();
+    return;
+  }
+
+  // Load config from ~/.code-cli/config.json and apply API keys to env
+  const config = loadConfig();
+  applyConfig(config);
+
+  // Use provider from config file if not explicitly set via --provider
+  // (parseArgs defaults to 'anthropic', so we check if user didn't pass --provider)
+  if (config.defaultProvider && !process.argv.includes('--provider')) {
+    args.provider = config.defaultProvider;
+  }
 
   // Validate provider and API key
   try {
     validateApiKey(args.provider);
   } catch (error) {
     if (error instanceof ConfigurationError) {
-      console.error(chalk.red(`Error: ${error.message}`));
+      console.error(getMissingKeyMessage(args.provider));
       process.exit(1);
     }
     throw error;
   }
 
   // Resolve model name
-  const model = args.model ?? getDefaultModel(args.provider);
+  const model = args.model ?? (config.defaultModel || getDefaultModel(args.provider));
   const contextWindow = getContextWindow(args.provider);
 
   // Create Agent

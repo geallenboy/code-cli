@@ -89,6 +89,8 @@ export interface CliArgs {
   noThinking: boolean;
   /** 启用 JSON 输出 */
   json: boolean;
+  /** 运行交互式设置向导 */
+  setup: boolean;
 }
 
 // ===== 双层架构类型 (Phase 4) =====

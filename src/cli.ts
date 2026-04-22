@@ -23,6 +23,7 @@ import { MultiLineInput } from './input.js';
 import { detectRecoverableSession, formatRecoveryPrompt, parseRecoveryAnswer } from './session-recovery.js';
 import { renderWelcomeScreen } from './welcome.js';
 import { renderBox, renderSeparator } from './box.js';
+import { formatConfigInfo } from './config.js';
 
 /**
  * 解析命令行参数。
@@ -47,6 +48,7 @@ export function parseArgs(): CliArgs {
     swarm: false,
     noThinking: false,
     json: false,
+    setup: false,
   };
 
   const positional: string[] = [];
@@ -83,6 +85,10 @@ export function parseArgs(): CliArgs {
         break;
       case '--json':
         result.json = true;
+        break;
+      case '--setup':
+      case 'config':
+        result.setup = true;
         break;
       default:
         if (!arg.startsWith('--')) {
@@ -242,6 +248,7 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
               '/clear    Clear conversation history',
               '/cost     Show token usage and cost',
               '/compact  Compress context',
+              '/config   Show current configuration',
               '/plan     Enter plan mode',
               '/status   Show session status',
               '/memory   View memory list',
@@ -271,6 +278,16 @@ export async function runRepl(agent: Agent, mcpManager?: McpManager): Promise<vo
               for (const s of servers) {
                 console.log(chalk.dim(`  ${s.name} — ${s.toolCount} tools`));
               }
+            }
+            continue;
+          }
+          case '/config': {
+            const configLines = formatConfigInfo(
+              agent.config.provider ?? 'anthropic',
+              agent.config.model ?? 'default',
+            );
+            for (const line of configLines) {
+              console.log(line);
             }
             continue;
           }
