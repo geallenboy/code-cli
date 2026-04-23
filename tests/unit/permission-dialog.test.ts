@@ -6,11 +6,20 @@
  * - 风险等级颜色编码
  * - 建议规则显示
  * - 选项解析
+ * - Ink PermissionDialog 组件渲染
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import chalk from 'chalk';
+import React from 'react';
+import { render } from 'ink-testing-library';
 import { PermissionDialog, getRiskColor } from '../../src/ink/components/permission-dialog.js';
+import {
+  PermissionDialog as InkPermissionDialog,
+  getRiskColor as inkGetRiskColor,
+  parsePermissionKey,
+  ANTI_MISCLICK_DELAY_MS,
+} from '../../src/ink-app/PermissionDialog.js';
 
 // Force chalk to use colors in test environment
 chalk.level = 3; // TrueColor
@@ -332,5 +341,275 @@ describe('PermissionDialog', () => {
       // Should not be in delay state
       expect(dialog.isInDelay()).toBe(false);
     });
+  });
+});
+
+
+// ─── Ink PermissionDialog: Pure Functions ───
+
+describe('Ink PermissionDialog: getRiskColor', () => {
+  it('should return green for LOW', () => {
+    expect(inkGetRiskColor('LOW')).toBe('green');
+  });
+
+  it('should return yellow for MEDIUM', () => {
+    expect(inkGetRiskColor('MEDIUM')).toBe('yellow');
+  });
+
+  it('should return red for HIGH', () => {
+    expect(inkGetRiskColor('HIGH')).toBe('red');
+  });
+});
+
+describe('Ink PermissionDialog: parsePermissionKey', () => {
+  it('should parse y as yes (case insensitive)', () => {
+    expect(parsePermissionKey('y')).toBe('yes');
+    expect(parsePermissionKey('Y')).toBe('yes');
+  });
+
+  it('should parse n as no (case insensitive)', () => {
+    expect(parsePermissionKey('n')).toBe('no');
+    expect(parsePermissionKey('N')).toBe('no');
+  });
+
+  it('should parse a as always (case insensitive)', () => {
+    expect(parsePermissionKey('a')).toBe('always');
+    expect(parsePermissionKey('A')).toBe('always');
+  });
+
+  it('should return null for invalid keys', () => {
+    expect(parsePermissionKey('x')).toBeNull();
+    expect(parsePermissionKey('')).toBeNull();
+    expect(parsePermissionKey('z')).toBeNull();
+    expect(parsePermissionKey('1')).toBeNull();
+  });
+});
+
+describe('Ink PermissionDialog: ANTI_MISCLICK_DELAY_MS', () => {
+  it('should be 200ms', () => {
+    expect(ANTI_MISCLICK_DELAY_MS).toBe(200);
+  });
+});
+
+// ─── Ink PermissionDialog: Component Rendering ───
+
+describe('Ink PermissionDialog Component', () => {
+  it('should render tool name and description', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'Executes a dangerous command',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    expect(output).toContain('run_shell');
+    expect(output).toContain('Executes a dangerous command');
+  });
+
+  it('should render Permission Required header', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    expect(output).toContain('Permission Required');
+  });
+
+  it('should render risk level text', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'Dangerous',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    expect(output).toContain('HIGH');
+  });
+
+  it('should render with round border', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'LOW',
+        description: 'Safe',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    // Ink round border uses ╭ ╮ ╰ ╯ characters
+    expect(output).toContain('╭');
+    expect(output).toContain('╯');
+  });
+
+  it('should render y/n/a options', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'LOW',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    expect(output).toContain('[y]');
+    expect(output).toContain('[n]');
+    expect(output).toContain('[a]');
+  });
+
+  it('should render dim options initially (anti-misclick delay)', () => {
+    const onChoice = vi.fn();
+    const { lastFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    const output = lastFrame();
+    // During delay, options are rendered with dimColor (single Text element)
+    // The output should contain the options text
+    expect(output).toContain('[y]es');
+    expect(output).toContain('[n]o');
+    expect(output).toContain('[a]lways');
+  });
+
+  it('should not call onChoice during anti-misclick delay', () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    // Press y immediately (during delay)
+    stdin.write('y');
+    expect(onChoice).not.toHaveBeenCalled();
+  });
+
+  it('should call onChoice after delay expires', async () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    // Wait for anti-misclick delay to expire
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    stdin.write('y');
+    expect(onChoice).toHaveBeenCalledWith('yes');
+  });
+
+  it('should handle n key after delay', async () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    stdin.write('n');
+    expect(onChoice).toHaveBeenCalledWith('no');
+  });
+
+  it('should handle a key after delay', async () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    stdin.write('a');
+    expect(onChoice).toHaveBeenCalledWith('always');
+  });
+
+  it('should ignore invalid keys after delay', async () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    stdin.write('x');
+    expect(onChoice).not.toHaveBeenCalled();
+  });
+
+  it('should render different risk levels', () => {
+    const onChoice = vi.fn();
+
+    const { lastFrame: lowFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'read_file',
+        riskLevel: 'LOW',
+        description: 'Read only',
+        onChoice,
+      }),
+    );
+    expect(lowFrame()).toContain('LOW');
+
+    const { lastFrame: medFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'write_file',
+        riskLevel: 'MEDIUM',
+        description: 'Write file',
+        onChoice,
+      }),
+    );
+    expect(medFrame()).toContain('MEDIUM');
+
+    const { lastFrame: highFrame } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'Dangerous',
+        onChoice,
+      }),
+    );
+    expect(highFrame()).toContain('HIGH');
+  });
+
+  it('should not capture input when isActive is false', async () => {
+    const onChoice = vi.fn();
+    const { stdin } = render(
+      React.createElement(InkPermissionDialog, {
+        toolName: 'run_shell',
+        riskLevel: 'HIGH',
+        description: 'test',
+        onChoice,
+        isActive: false,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    stdin.write('y');
+    expect(onChoice).not.toHaveBeenCalled();
   });
 });
