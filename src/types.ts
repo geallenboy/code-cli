@@ -91,6 +91,8 @@ export interface CliArgs {
   json: boolean;
   /** 运行交互式设置向导 */
   setup: boolean;
+  /** 禁用 Ink UI，使用 chalk 回退 */
+  noInk: boolean;
 }
 
 // ===== 双层架构类型 (Phase 4) =====

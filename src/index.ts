@@ -20,6 +20,7 @@ import { ConfigurationError } from './errors.js';
 import { loadLatestSession } from './session.js';
 import { McpManager } from './mcp/index.js';
 import { loadConfig, applyConfig, runSetup, getMissingKeyMessage } from './config.js';
+import { runInkRepl } from './ink-app/index.js';
 import type { ModelMessage } from 'ai';
 
 async function main(): Promise<void> {
@@ -117,7 +118,13 @@ async function main(): Promise<void> {
     }
   } else {
     // Interactive REPL mode
-    await runRepl(agent, mcpManager);
+    if (args.noInk) {
+      // Chalk fallback REPL
+      await runRepl(agent, mcpManager);
+    } else {
+      // Ink React REPL
+      await runInkRepl(agent);
+    }
   }
 }
 

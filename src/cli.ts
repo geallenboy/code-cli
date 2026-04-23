@@ -49,6 +49,7 @@ export function parseArgs(): CliArgs {
     noThinking: false,
     json: false,
     setup: false,
+    noInk: false,
   };
 
   const positional: string[] = [];
@@ -89,6 +90,9 @@ export function parseArgs(): CliArgs {
       case '--setup':
       case 'config':
         result.setup = true;
+        break;
+      case '--no-ink':
+        result.noInk = true;
         break;
       default:
         if (!arg.startsWith('--')) {
