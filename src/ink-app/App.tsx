@@ -9,7 +9,7 @@
  * - PermissionDialog 活跃时优先路由键盘事件到对话框
  */
 
-import React, { useReducer, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useReducer, useState, useCallback, useMemo, useEffect } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { appReducer, initialState } from './reducer.js';
 import { MessageList } from './MessageList.js';
@@ -20,6 +20,8 @@ import { useKeyboard } from './useKeyboard.js';
 import { useSearch } from './useSearch.js';
 import { SearchBar } from './SearchBar.js';
 import type { FocusState } from './useKeyboard.js';
+import { SpinnerGlyph } from './SpinnerGlyph.js';
+import type { SpinnerMode } from './SpinnerGlyph.js';
 import type { AgentConfig } from '../types.js';
 import type { Agent } from '../agent.js';
 
@@ -36,6 +38,21 @@ export function App({ agent, config, permissionDialogActive = false }: AppProps)
   const [ctrlCCount, setCtrlCCount] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
   const [turnStartTime, setTurnStartTime] = useState(0);
+  const [spinnerMode, setSpinnerMode] = useState<SpinnerMode>('requesting');
+  const [stallStart, setStallStart] = useState(0);
+  const [stallMs, setStallMs] = useState(0);
+
+  // Update stallMs every second while processing for stall timer display
+  useEffect(() => {
+    if (!state.isProcessing) {
+      setStallMs(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setStallMs(Date.now() - stallStart);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [state.isProcessing, stallStart]);
 
   // 需求 18：搜索高亮
   const search = useSearch(state.messages);
@@ -92,32 +109,50 @@ export function App({ agent, config, permissionDialogActive = false }: AppProps)
       return;
     }
 
-    // Regular message
+    // Regular message — consume the async generator
     dispatch({ type: 'ADD_USER_MESSAGE', content: trimmed });
     dispatch({ type: 'SET_PROCESSING', value: true });
-    setTurnStartTime(performance.now());
+    setSpinnerMode('requesting');
+    setStallStart(Date.now());
+    const startTime = performance.now();
 
     try {
-      await agent.chat(trimmed);
+      const gen = agent.queryStream(trimmed);
+      let result = await gen.next();
+
+      while (!result.done) {
+        const event = result.value;
+        switch (event.type) {
+          case 'text':
+            dispatch({ type: 'ADD_ASSISTANT_TEXT', text: event.text });
+            setSpinnerMode('responding');
+            setStallStart(Date.now());
+            break;
+          case 'tool_call':
+            dispatch({ type: 'ADD_TOOL_CALL', toolName: event.toolName, input: event.input });
+            setSpinnerMode('requesting');
+            break;
+          case 'tool_result':
+            dispatch({ type: 'ADD_TOOL_RESULT', toolName: event.toolName, result: event.result });
+            break;
+          case 'usage':
+            dispatch({ type: 'UPDATE_USAGE', inputTokens: event.inputTokens, outputTokens: event.outputTokens });
+            break;
+          case 'error':
+            dispatch({ type: 'ADD_ERROR', message: event.error.message });
+            break;
+          // compact → no-op
+        }
+        result = await gen.next();
+      }
+      // result.value is Terminal — record elapsed time
+      setTurnStartTime(startTime);
     } catch (error) {
       dispatch({ type: 'ADD_ERROR', message: error instanceof Error ? error.message : String(error) });
     } finally {
       dispatch({ type: 'SET_PROCESSING', value: false });
     }
   }, [agent, resetCtrlC]);
-
-  // Consume StreamEvent from agent (simplified — full integration in Phase 2)
-  useEffect(() => {
-    // Token usage sync
-    const usage = agent.tokenUsage;
-    if (usage.inputTokens > 0 || usage.outputTokens > 0) {
-      dispatch({
-        type: 'UPDATE_USAGE',
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-      });
-    }
-  }, [state.isProcessing, agent]);
 
   return (
     <Box flexDirection="column" width="100%">
@@ -141,7 +176,7 @@ export function App({ agent, config, permissionDialogActive = false }: AppProps)
 
       {state.isProcessing && (
         <Box marginLeft={1}>
-          <Text color="cyan">⠋ Processing...</Text>
+          <SpinnerGlyph mode={spinnerMode} stallMs={stallMs} />
         </Box>
       )}
 
@@ -161,11 +196,12 @@ export function App({ agent, config, permissionDialogActive = false }: AppProps)
         </Box>
       )}
 
-      <PromptInput
-        onSubmit={handleSubmit}
-        planMode={state.planMode}
-        disabled={state.isProcessing || permissionDialogActive}
-      />
+      {!state.isProcessing && !permissionDialogActive && (
+        <PromptInput
+          onSubmit={handleSubmit}
+          planMode={state.planMode}
+        />
+      )}
     </Box>
   );
 }

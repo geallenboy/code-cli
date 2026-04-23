@@ -3,12 +3,16 @@
  *
  * 使用虚拟滚动仅渲染可视区域内的消息。
  * 支持搜索高亮（需求 18）。
+ * 使用 StreamingText、ToolCallPanel、ToolResultPanel 渲染消息。
  */
 
 import React from 'react';
 import { Box, Text } from 'ink';
 import { useVirtualScroll } from './useVirtualScroll.js';
 import { highlightMatches } from './useSearch.js';
+import { StreamingText } from './StreamingText.js';
+import { ToolCallPanel } from './ToolCallPanel.js';
+import { ToolResultPanel } from './ToolResultPanel.js';
 import type { ChatMessage } from './types.js';
 import type { HighlightSegment } from './useSearch.js';
 
@@ -37,6 +41,22 @@ function HighlightedText({ segments }: { segments: HighlightSegment[] }) {
   );
 }
 
+/**
+ * Turn separator — a dim horizontal rule spanning terminal width.
+ * Rendered between conversation turns (before a user message that follows
+ * an assistant, tool, or error message).
+ *
+ * 需求 8.1, 8.2, 8.3
+ */
+function TurnSeparator() {
+  const width = process.stdout.columns || 80;
+  return (
+    <Box marginY={0}>
+      <Text dimColor>{'─'.repeat(width)}</Text>
+    </Box>
+  );
+}
+
 function UserMessage({ content, searchQuery }: { content: string; searchQuery?: string }) {
   const segments = searchQuery ? highlightMatches(content, searchQuery) : null;
 
@@ -48,36 +68,32 @@ function UserMessage({ content, searchQuery }: { content: string; searchQuery?: 
   );
 }
 
-function AssistantMessage({ content, searchQuery }: { content: string; searchQuery?: string }) {
-  const segments = searchQuery ? highlightMatches(content, searchQuery) : null;
-
+function AssistantMessage({ content }: { content: string }) {
   return (
     <Box marginY={0} marginLeft={1}>
-      {segments ? <HighlightedText segments={segments} /> : <Text>{content}</Text>}
+      <StreamingText content={content} />
     </Box>
   );
 }
 
-function ToolMessage({ message, searchQuery: _searchQuery }: { message: ChatMessage; searchQuery?: string }) {
-  const icon = message.isError ? '❌' : message.elapsed != null ? '✅' : '⠋';
-  const time = message.elapsed != null ? ` (${(message.elapsed / 1000).toFixed(1)}s)` : '';
-
+function ToolMessage({ message }: { message: ChatMessage }) {
+  if (message.elapsed == null) {
+    // Tool call in progress — show ToolCallPanel
+    return (
+      <ToolCallPanel
+        toolName={message.toolName ?? 'unknown'}
+        input={message.toolInput}
+      />
+    );
+  }
+  // Tool completed — show ToolResultPanel
   return (
-    <Box flexDirection="column" marginLeft={2}>
-      <Box>
-        <Text color="yellow">{icon} {message.toolName}</Text>
-        <Text dimColor>{time}</Text>
-      </Box>
-      {message.toolInput && (
-        <Box marginLeft={2}>
-          <Text dimColor>
-            {Object.entries(message.toolInput)
-              .map(([k, v]) => `${k}: ${String(v).slice(0, 60)}`)
-              .join('\n')}
-          </Text>
-        </Box>
-      )}
-    </Box>
+    <ToolResultPanel
+      toolName={message.toolName ?? 'unknown'}
+      result={message.content}
+      elapsed={message.elapsed}
+      isError={message.isError}
+    />
   );
 }
 
@@ -103,6 +119,23 @@ function ErrorMessage({ content, searchQuery }: { content: string; searchQuery?:
   );
 }
 
+/**
+ * Determine whether a turn separator should be rendered before the message
+ * at the given index in the full messages array.
+ *
+ * A separator is rendered before a user message when the immediately preceding
+ * message has role assistant, tool, or error.
+ * No separator before the first message or between consecutive user messages.
+ */
+export function shouldShowSeparator(messages: ChatMessage[], index: number): boolean {
+  if (index <= 0) return false;
+  const current = messages[index];
+  if (!current || current.role !== 'user') return false;
+  const prev = messages[index - 1];
+  if (!prev) return false;
+  return prev.role === 'assistant' || prev.role === 'tool' || prev.role === 'error';
+}
+
 export function MessageList({ messages, searchQuery }: MessageListProps) {
   const { visibleItems, startIndex } = useVirtualScroll(messages, {
     estimatedItemHeight: 3,
@@ -115,19 +148,27 @@ export function MessageList({ messages, searchQuery }: MessageListProps) {
           <Text dimColor>↑ {startIndex} earlier message{startIndex > 1 ? 's' : ''}</Text>
         </Box>
       )}
-      {visibleItems.map(msg => {
-        switch (msg.role) {
-          case 'user':
-            return <UserMessage key={msg.id} content={msg.content} searchQuery={searchQuery} />;
-          case 'assistant':
-            return <AssistantMessage key={msg.id} content={msg.content} searchQuery={searchQuery} />;
-          case 'tool':
-            return <ToolMessage key={msg.id} message={msg} searchQuery={searchQuery} />;
-          case 'error':
-            return <ErrorMessage key={msg.id} content={msg.content} searchQuery={searchQuery} />;
-          default:
-            return null;
-        }
+      {visibleItems.map((msg, i) => {
+        const globalIndex = startIndex + i;
+        const separator = shouldShowSeparator(messages, globalIndex);
+
+        return (
+          <React.Fragment key={msg.id}>
+            {separator && <TurnSeparator />}
+            {msg.role === 'user' && (
+              <UserMessage content={msg.content} searchQuery={searchQuery} />
+            )}
+            {msg.role === 'assistant' && (
+              <AssistantMessage content={msg.content} />
+            )}
+            {msg.role === 'tool' && (
+              <ToolMessage message={msg} />
+            )}
+            {msg.role === 'error' && (
+              <ErrorMessage content={msg.content} searchQuery={searchQuery} />
+            )}
+          </React.Fragment>
+        );
       })}
       {messages.length > 0 && visibleItems.length < messages.length - startIndex && (
         <Box marginLeft={1}>

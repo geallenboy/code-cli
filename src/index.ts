@@ -65,16 +65,20 @@ async function main(): Promise<void> {
     effectiveContextWindow: contextWindow,
   });
 
-  console.log(chalk.dim(`Provider: ${args.provider} | Model: ${model}`));
+  // Only print provider info via console.log in chalk fallback mode
+  // When Ink is active, WelcomeScreen renders this info inside its bordered panel
+  if (args.noInk) {
+    console.log(chalk.dim(`Provider: ${args.provider} | Model: ${model}`));
+  }
 
   // Handle --coordinator mode
-  if (args.coordinator) {
+  if (args.coordinator && args.noInk) {
     console.log(chalk.cyan('[COORDINATOR MODE] Agent will orchestrate sub-agents'));
     console.log(chalk.dim('  4-phase workflow: Research → Synthesize → Implement → Verify'));
   }
 
   // Handle --swarm mode
-  if (args.swarm) {
+  if (args.swarm && args.noInk) {
     console.log(chalk.cyan('[SWARM MODE] Multi-agent collaboration enabled'));
     console.log(chalk.dim('  Agents communicate via shared mailbox'));
   }

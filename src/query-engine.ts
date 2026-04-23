@@ -14,7 +14,7 @@ import { createModel } from './provider.js';
 import { query, type QueryParams } from './query.js';
 import { printToolCall, printToolResult, Spinner } from './ui.js';
 import { StreamingMarkdownRenderer } from './markdown.js';
-import type { QueryEngineConfig, StreamEvent, TokenUsage } from './types.js';
+import type { QueryEngineConfig, StreamEvent, Terminal, TokenUsage } from './types.js';
 import { saveSession } from './session.js';
 import type { ToolContext } from './tools/index.js';
 import * as readline from 'node:readline';
@@ -221,6 +221,73 @@ export class QueryEngine {
         cwd: process.cwd(),
         messages: this._messages,
       });
+      this._isProcessing = false;
+      this.abortController = null;
+    }
+  }
+
+  /**
+   * 流式查询 — 暴露 query() generator 的 StreamEvent 给调用方。
+   *
+   * 与 chat() 相同的会话管理（消息推送、AbortController、session 保存），
+   * 但不消费事件，而是 yield 给调用方（如 Ink UI）。
+   *
+   * @param userMessage - 用户输入的消息
+   * @yields StreamEvent 事件
+   * @returns Terminal 终止状态
+   */
+  async *queryStream(userMessage: string): AsyncGenerator<StreamEvent, Terminal> {
+    this._isProcessing = true;
+    this.abortController = new AbortController();
+
+    try {
+      this._messages.push({ role: 'user', content: userMessage });
+
+      const toolCtx: ToolContext = {
+        yolo: this._config.yolo,
+        confirm: askConfirmation,
+        confirmedCommands: this._confirmedCommands,
+      };
+
+      const params: QueryParams = {
+        model: this.modelInstance,
+        messages: this._messages,
+        toolContext: toolCtx,
+        effectiveContextWindow: this._config.effectiveContextWindow,
+        abortSignal: this.abortController.signal,
+        maxTurns: this._config.maxTurns ?? 15,
+      };
+
+      const generator = query(params);
+      let terminal: Terminal;
+
+      while (true) {
+        const { value, done } = await generator.next();
+        if (done) {
+          terminal = value;
+          break;
+        }
+        // Track usage internally for session stats
+        if (value.type === 'usage') {
+          this.totalInputTokens += value.inputTokens;
+          this.totalOutputTokens += value.outputTokens;
+          this.apiCallCount++;
+        }
+        yield value;
+      }
+
+      return terminal;
+    } finally {
+      try {
+        saveSession(this.sessionId, {
+          id: this.sessionId,
+          startTime: new Date().toISOString(),
+          cwd: process.cwd(),
+          messages: this._messages,
+        });
+      } catch {
+        // Session save is best-effort
+      }
       this._isProcessing = false;
       this.abortController = null;
     }

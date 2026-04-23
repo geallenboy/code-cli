@@ -8,7 +8,7 @@
  */
 
 import { QueryEngine } from './query-engine.js';
-import type { AgentConfig, TokenUsage, QueryEngineConfig } from './types.js';
+import type { AgentConfig, StreamEvent, Terminal, TokenUsage, QueryEngineConfig } from './types.js';
 import type { ModelMessage } from 'ai';
 
 // Re-export from query.ts for backward compatibility
@@ -30,6 +30,11 @@ export class Agent {
   /** 处理用户输入 */
   async chat(userMessage: string): Promise<void> {
     return this.engine.chat(userMessage);
+  }
+
+  /** 流式查询 — 暴露 StreamEvent generator 给调用方 */
+  async *queryStream(userMessage: string): AsyncGenerator<StreamEvent, Terminal> {
+    return yield* this.engine.queryStream(userMessage);
   }
 
   /** 中止当前操作 */
