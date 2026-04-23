@@ -90,14 +90,18 @@ async function main(): Promise<void> {
     try {
       await mcpManager.initialize();
       const servers = mcpManager.getConnectedServers();
-      if (servers.length > 0) {
-        const totalTools = servers.reduce((sum, s) => sum + s.toolCount, 0);
-        console.log(chalk.dim(`MCP: ${servers.length} server(s) connected, ${totalTools} tool(s) available`));
-      } else {
-        console.log(chalk.dim('MCP: No servers configured or connected'));
+      if (args.noInk) {
+        if (servers.length > 0) {
+          const totalTools = servers.reduce((sum, s) => sum + s.toolCount, 0);
+          console.log(chalk.dim(`MCP: ${servers.length} server(s) connected, ${totalTools} tool(s) available`));
+        } else {
+          console.log(chalk.dim('MCP: No servers configured or connected'));
+        }
       }
     } catch {
-      console.log(chalk.dim('MCP: Failed to initialize'));
+      if (args.noInk) {
+        console.log(chalk.dim('MCP: Failed to initialize'));
+      }
     }
   }
 
@@ -106,9 +110,13 @@ async function main(): Promise<void> {
     const session = loadLatestSession();
     if (session) {
       agent.restoreMessages(session.messages as ModelMessage[]);
-      console.log(chalk.dim(`Resumed session: ${session.id}`));
+      if (args.noInk) {
+        console.log(chalk.dim(`Resumed session: ${session.id}`));
+      }
     } else {
-      console.log(chalk.dim('No previous session found.'));
+      if (args.noInk) {
+        console.log(chalk.dim('No previous session found.'));
+      }
     }
   }
 
