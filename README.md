@@ -14,6 +14,7 @@ A terminal-based AI programming assistant inspired by Claude Code. Chat with an 
 - **Memory** — Persistent cross-session memory with semantic recall.
 - **Plan mode** — Read-only exploration first, then execute with approval.
 - **Extended Thinking** — Anthropic thinking chains for complex reasoning tasks.
+- **React + Ink terminal UI** — Streaming Markdown rendering, tool call panels, animated spinner, virtual scrolling. Falls back to chalk with `--no-ink`.
 - **Skills** — Built-in `/commit`, `/review`, `/debug` + custom skills.
 
 ## Install
@@ -89,6 +90,8 @@ code-cli --provider deepseek "Explain what src/index.ts does"
 | `--swarm` | Start in Swarm mode (peer-to-peer multi-agent) |
 | `--thinking-budget <n>` | Set Extended Thinking token budget (default: 10000, Anthropic only) |
 | `--no-thinking` | Disable Extended Thinking |
+| `--no-ink` | Disable React + Ink UI, use chalk fallback |
+| `--setup` | Run interactive first-time setup wizard |
 | `--json` | Request structured JSON output |
 
 ### REPL commands
@@ -107,11 +110,20 @@ code-cli --provider deepseek "Explain what src/index.ts does"
 | `/commit` | Generate a commit message and commit (built-in skill) |
 | `/review` | Code review current changes (built-in skill) |
 | `/debug` | Analyze errors and suggest fixes (built-in skill) |
+| `/config` | Open configuration settings |
 | `/skill <name>` | Run a custom skill |
 | `/task list` | List tasks |
 | `/task add <title>` | Create a task |
 | `/task run <id>` | Execute a task via sub-agent |
 | Ctrl+C | Abort current operation (press twice to exit) |
+
+### Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+L | Clear screen |
+| Ctrl+F | Search messages |
+| Ctrl+R | History search |
 
 ## Providers
 
@@ -210,11 +222,11 @@ git clone https://github.com/geallenboy/cc-cli.git
 cd cc-cli
 pnpm install
 pnpm run build
-pnpm test              # 742 unit tests
+pnpm test              # 1328 unit tests
 pnpm run check-all     # typecheck + lint + test
 ```
 
-See [docs/README.md](./docs/README.md) for the full development log (15 phases, 67 tasks).
+See [docs/README.md](./docs/README.md) for the full development log (17 phases, ~90 tasks).
 
 ## License
 

@@ -14,6 +14,7 @@
 - **记忆系统** — 跨会话持久记忆 + 语义召回
 - **计划模式** — 先只读探索，审批后再执行
 - **Extended Thinking** — Anthropic 思维链，提升复杂推理能力
+- **React + Ink 终端 UI** — 流式 Markdown 渲染、工具调用面板、动画 Spinner、虚拟滚动。`--no-ink` 回退到 chalk 模式。
 - **技能系统** — 内置 `/commit`、`/review`、`/debug` + 自定义技能
 
 ## 安装
@@ -89,6 +90,8 @@ code-cli --provider deepseek "解释 src/index.ts 做了什么"
 | `--swarm` | 启动 Swarm 模式（对等多 Agent 协作） |
 | `--thinking-budget <n>` | 设置 Extended Thinking token 预算（默认 10000，仅 Anthropic） |
 | `--no-thinking` | 禁用 Extended Thinking |
+| `--no-ink` | 禁用 React + Ink UI，使用 chalk 降级模式 |
+| `--setup` | 运行交互式首次配置向导 |
 | `--json` | 请求结构化 JSON 输出 |
 
 ### REPL 命令
@@ -107,11 +110,20 @@ code-cli --provider deepseek "解释 src/index.ts 做了什么"
 | `/commit` | 生成 commit message 并提交（内置技能） |
 | `/review` | 代码审查当前变更（内置技能） |
 | `/debug` | 分析错误并建议修复（内置技能） |
+| `/config` | 打开配置设置 |
 | `/skill <name>` | 运行自定义技能 |
 | `/task list` | 列出任务 |
 | `/task add <title>` | 创建任务 |
 | `/task run <id>` | 通过子 Agent 执行任务 |
 | Ctrl+C | 中止当前操作（按两次退出） |
+
+### 键盘快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| Ctrl+L | 清屏 |
+| Ctrl+F | 搜索消息 |
+| Ctrl+R | 历史搜索 |
 
 ## 提供商对比
 
@@ -210,11 +222,11 @@ git clone https://github.com/geallenboy/cc-cli.git
 cd cc-cli
 pnpm install
 pnpm run build
-pnpm test              # 742 个单元测试
+pnpm test              # 1328 个单元测试
 pnpm run check-all     # typecheck + lint + test
 ```
 
-完整开发日志见 [docs/README.md](./docs/README.md)（15 个阶段，67 个任务）。
+完整开发日志见 [docs/README.md](./docs/README.md)（17 个阶段，~90 个任务）。
 
 ## 许可证
 

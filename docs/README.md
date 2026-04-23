@@ -22,7 +22,7 @@ node dist/index.js --provider deepseek
 node dist/index.js --provider deepseek "读取 package.json"
 
 # 运行测试
-pnpm test                      # 1030 个单元测试
+pnpm test                      # 1328 个单元测试
 bash scripts/e2e-test.sh       # 27 个端到端测试
 ```
 
@@ -156,6 +156,20 @@ code-cli/
 │   │   ├── index.ts              # 公共 API
 │   │   ├── coordinator.ts        # 4 阶段工作流
 │   │   └── worktree.ts           # Git Worktree 隔离
+│   ├── ink-app/                  # React + Ink 终端 UI
+│   │   ├── App.tsx               # 根组件（StreamEvent 消费）
+│   │   ├── MessageList.tsx       # 对话消息列表
+│   │   ├── PromptInput.tsx       # 多行输入组件
+│   │   ├── StreamingText.tsx     # 流式 Markdown 渲染
+│   │   ├── ToolCallPanel.tsx     # 工具调用面板
+│   │   ├── ToolResultPanel.tsx   # 工具结果面板
+│   │   ├── DiffView.tsx          # Diff 渲染
+│   │   ├── SpinnerGlyph.tsx      # 模式感知动画 Spinner
+│   │   ├── PermissionDialog.tsx  # 权限确认对话框
+│   │   ├── StatusBar.tsx         # 状态栏（token/成本/耗时）
+│   │   ├── WelcomeScreen.tsx     # 欢迎屏幕
+│   │   ├── HelpPanel.tsx         # 帮助面板
+│   │   └── SearchBar.tsx         # 搜索栏
 │   ├── swarm/                    # Swarm 对等协作模式
 │   │   ├── index.ts              # 公共 API
 │   │   ├── swarm.ts              # Swarm 管理器
@@ -191,7 +205,7 @@ code-cli/
 ```bash
 pnpm run build          # TypeScript 编译
 pnpm run dev            # 监听模式编译
-pnpm test               # 运行 1030 个单元测试
+pnpm test               # 运行 1328 个单元测试
 pnpm test:watch         # 监听模式测试
 pnpm test:coverage      # 覆盖率报告
 pnpm run lint           # ESLint 检查
@@ -209,6 +223,8 @@ node dist/index.js --provider deepseek           # 指定提供商
 node dist/index.js --model gpt-4o-mini           # 指定模型
 node dist/index.js --yolo                        # 跳过所有确认
 node dist/index.js --resume                      # 恢复上次会话
+node dist/index.js --no-ink                      # 禁用 Ink UI，使用 chalk 降级
+node dist/index.js --setup                       # 运行交互式首次配置向导
 node dist/index.js "读取 package.json"            # 一次性模式
 ```
 
@@ -225,6 +241,7 @@ node dist/index.js "读取 package.json"            # 一次性模式
 | `/status` | 显示会话状态 |
 | `/rules` | 显示权限规则 |
 | `/mcp` | 列出已连接的 MCP 服务器 |
+| `/config` | 打开配置设置 |
 
 ## 支持的 AI 提供商
 
@@ -240,16 +257,16 @@ node dist/index.js "读取 package.json"            # 一次性模式
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 1030 |
+| 单元测试 | 1328 |
 | 端到端测试 | 27 |
-| 源文件 | 60+ |
+| 源文件 | 75+ |
 | 工具 | 6 + agent + MCP |
 | 提供商 | 5 |
 | 开发文档 | 30+ 篇 |
 | 测试文档 | 9 篇 |
-| Git 标签 | v0.1.0 → v3.3.0 (18 个) |
-| Phase | 15 |
-| Task | 67 |
+| Git 标签 | v0.1.0 → v4.1.0 (20 个) |
+| Phase | 17 |
+| Task | ~90 |
 
 ### Phase 8: 上下文工程深化 (v1.1.0)
 
@@ -282,3 +299,24 @@ node dist/index.js "读取 package.json"            # 一次性模式
 ### Phase 15: Extended Thinking + Structured Output (v3.0.0)
 
 - [Task 64-67: Thinking + JSON 输出](./64-phase15-thinking-structured.md)
+
+### Phase 16: Ink UI 升级 (v4.0.0)
+
+- 从 console.log REPL 迁移到 React + Ink 终端应用
+- 15 个新 Ink 组件：App、MessageList、PromptInput、StreamingText、ToolCallPanel、ToolResultPanel、DiffView、SpinnerGlyph、PermissionDialog、StatusBar、WelcomeScreen、HelpPanel、SearchBar、useVirtualScroll、useKeyboard、useSearch
+- 虚拟滚动支持长对话
+- 键盘快捷键：Ctrl+L 清屏、Ctrl+F 搜索
+- 搜索高亮
+- --no-ink 回退到 chalk 模式
+- 测试：1060 → 1328（+268 新增）
+
+### Phase 17: Ink UI Polish — StreamEvent 集成 (v4.1.0)
+
+- Agent.queryStream() 暴露 async generator 供 Ink 消费
+- App.tsx 直接消费 StreamEvent：text/tool_call/tool_result/usage/error
+- MessageList 使用 StreamingText 渲染 Markdown，ToolCallPanel/ToolResultPanel 渲染工具消息
+- SpinnerGlyph 替换静态 "Processing..." 为模式感知动画（requesting/responding）
+- 对话交换之间添加 Turn 分隔符
+- console.log 仅在 --no-ink 模式下输出，避免 Ink 渲染干扰
+- PromptInput 在处理期间隐藏
+- 全部 1328 个测试通过
