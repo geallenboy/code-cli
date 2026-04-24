@@ -34,6 +34,7 @@ export type AppAction =
   | { type: 'ADD_TOOL_CALL'; toolName: string; input: Record<string, unknown> }
   | { type: 'ADD_TOOL_RESULT'; toolName: string; result: string; elapsed?: number; isError?: boolean }
   | { type: 'ADD_ERROR'; message: string }
+  | { type: 'ADD_SYSTEM_MESSAGE'; content: string }
   | { type: 'UPDATE_USAGE'; inputTokens: number; outputTokens: number }
   | { type: 'SET_PROCESSING'; value: boolean }
   | { type: 'TOGGLE_PLAN_MODE' }

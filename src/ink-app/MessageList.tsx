@@ -13,6 +13,7 @@ import { highlightMatches } from './useSearch.js';
 import { StreamingText } from './StreamingText.js';
 import { ToolCallPanel } from './ToolCallPanel.js';
 import { ToolResultPanel } from './ToolResultPanel.js';
+import { HelpPanel } from './HelpPanel.js';
 import type { ChatMessage } from './types.js';
 import type { HighlightSegment } from './useSearch.js';
 
@@ -119,6 +120,17 @@ function ErrorMessage({ content, searchQuery }: { content: string; searchQuery?:
   );
 }
 
+function SystemMessage({ message }: { message: ChatMessage }) {
+  if (message.content === '__HELP_PANEL__') {
+    return <HelpPanel />;
+  }
+  return (
+    <Box marginLeft={1}>
+      <Text dimColor>{message.content}</Text>
+    </Box>
+  );
+}
+
 /**
  * Determine whether a turn separator should be rendered before the message
  * at the given index in the full messages array.
@@ -133,7 +145,7 @@ export function shouldShowSeparator(messages: ChatMessage[], index: number): boo
   if (!current || current.role !== 'user') return false;
   const prev = messages[index - 1];
   if (!prev) return false;
-  return prev.role === 'assistant' || prev.role === 'tool' || prev.role === 'error';
+  return prev.role === 'assistant' || prev.role === 'tool' || prev.role === 'error' || prev.role === 'system';
 }
 
 export function MessageList({ messages, searchQuery }: MessageListProps) {
@@ -166,6 +178,9 @@ export function MessageList({ messages, searchQuery }: MessageListProps) {
             )}
             {msg.role === 'error' && (
               <ErrorMessage content={msg.content} searchQuery={searchQuery} />
+            )}
+            {msg.role === 'system' && (
+              <SystemMessage message={msg} />
             )}
           </React.Fragment>
         );

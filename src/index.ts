@@ -135,7 +135,7 @@ async function main(): Promise<void> {
       await runRepl(agent, mcpManager);
     } else {
       // Ink React REPL
-      await runInkRepl(agent);
+      await runInkRepl(agent, mcpManager);
     }
   }
 }

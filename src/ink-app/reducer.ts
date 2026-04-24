@@ -82,6 +82,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         messages: [...state.messages, createMessage({ role: 'error', content: action.message })],
       };
 
+    case 'ADD_SYSTEM_MESSAGE':
+      return {
+        ...state,
+        messages: [...state.messages, createMessage({ role: 'system', content: action.content })],
+      };
+
     case 'UPDATE_USAGE':
       return {
         ...state,

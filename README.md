@@ -1,143 +1,143 @@
 # Code CLI
 
-A terminal-based AI programming assistant inspired by Claude Code. Chat with an AI that can read, write, and edit your files, run shell commands, search the web, and coordinate multi-agent workflows — all from the command line.
+一个终端 AI 编程助手，灵感来自 Claude Code。在命令行中与 AI 对话，它能读写文件、编辑代码、执行命令、搜索网页、协调多 Agent 工作流。
 
-## Features
+## 特性
 
-- **Multi-provider** — Anthropic, OpenAI, Google, DeepSeek, Zhipu (GLM). Switch with a flag.
-- **File operations** — Read, write, and edit files with search-and-replace precision. No line-number guessing.
-- **Shell execution** — Run commands with 23 static security checks and user confirmation for dangerous operations.
-- **Web tools** — Fetch URLs and search the web for docs and references.
-- **MCP protocol** — Connect external tools (databases, APIs, K8s) via Model Context Protocol.
-- **Multi-agent** — Coordinator mode (orchestrate sub-agents) and Swarm mode (peer-to-peer collaboration).
-- **Context management** — 4-level compression pipeline, session persistence, prompt caching.
-- **Memory** — Persistent cross-session memory with semantic recall.
-- **Plan mode** — Read-only exploration first, then execute with approval.
-- **Extended Thinking** — Anthropic thinking chains for complex reasoning tasks.
-- **React + Ink terminal UI** — Streaming Markdown rendering, tool call panels, animated spinner, virtual scrolling. Falls back to chalk with `--no-ink`.
-- **Skills** — Built-in `/commit`, `/review`, `/debug` + custom skills.
+- **多模型支持** — Anthropic、OpenAI、Google、DeepSeek、智谱，一个参数切换
+- **文件操作** — 读取、写入、精确编辑文件（search-and-replace，不靠行号猜测）
+- **命令执行** — 23 项静态安全检查，危险命令需用户确认
+- **Web 工具** — 抓取网页、搜索文档和参考资料
+- **MCP 协议** — 通过 Model Context Protocol 接入外部工具（数据库、API、K8s）
+- **多 Agent** — Coordinator 模式（编排子 Agent）和 Swarm 模式（对等协作）
+- **上下文管理** — 4 级压缩管线、会话持久化、提示词缓存
+- **记忆系统** — 跨会话持久记忆 + 语义召回
+- **计划模式** — 先只读探索，审批后再执行
+- **Extended Thinking** — Anthropic 思维链，提升复杂推理能力
+- **React + Ink 终端 UI** — 流式 Markdown 渲染、工具调用面板、动画 Spinner、虚拟滚动。`--no-ink` 回退到 chalk 模式。
+- **技能系统** — 内置 `/commit`、`/review`、`/debug` + 自定义技能
 
-## Install
+## 安装
 
 ```bash
 npm install -g @geallenboy/code-cli
 ```
 
-Or run directly:
+或直接运行：
 
 ```bash
 npx @geallenboy/code-cli
 ```
 
-Requires Node.js 18+.
+需要 Node.js 18+。
 
-## Setup
+## 配置
 
-You need at least one API key. Create a `.env` file in your project root or export the variable:
+至少需要一个 API Key。在项目根目录创建 `.env` 文件或导出环境变量：
 
 ```bash
-# Pick one (or more):
-export DEEPSEEK_API_KEY=your-key        # Cheapest, good for most tasks
-export ANTHROPIC_API_KEY=sk-ant-...     # Best quality (Claude)
+# 选一个（或多个）：
+export DEEPSEEK_API_KEY=your-key        # 最便宜，日常够用
+export ANTHROPIC_API_KEY=sk-ant-...     # 质量最好（Claude）
 export OPENAI_API_KEY=sk-...            # GPT-4o
 export GOOGLE_GENERATIVE_AI_API_KEY=... # Gemini
-export ZHIPU_API_KEY=...                # GLM-4 (Chinese)
+export ZHIPU_API_KEY=...                # GLM-4（中文优化）
 ```
 
-Or copy the template:
+或复制模板：
 
 ```bash
 cp .env.example .env
-# Edit .env with your key
+# 编辑 .env 填入你的 Key
 ```
 
-## Usage
+## 使用
 
-### Interactive mode (REPL)
+### 交互模式（REPL）
 
 ```bash
-code-cli                          # Default provider (Anthropic)
-code-cli --provider deepseek      # Use DeepSeek
-code-cli --provider openai        # Use OpenAI
+code-cli                          # 默认提供商（Anthropic）
+code-cli --provider deepseek      # 使用 DeepSeek
+code-cli --provider openai        # 使用 OpenAI
 ```
 
-Then just chat:
+然后直接对话：
 
 ```
-> Read package.json and tell me the version
-> Add a "lint" script to package.json
-> Run the tests and fix any failures
-> Search the codebase for TODO comments
+> 读取 package.json 告诉我版本号
+> 给 package.json 加一个 lint 脚本
+> 跑一下测试，修复失败的用例
+> 搜索代码库里所有的 TODO 注释
 ```
 
-### One-shot mode
+### 一次性模式
 
 ```bash
-code-cli "Read package.json and tell me the version"
-code-cli --provider deepseek "Explain what src/index.ts does"
+code-cli "读取 package.json 告诉我版本号"
+code-cli --provider deepseek "解释 src/index.ts 做了什么"
 ```
 
-### CLI flags
+### 命令行参数
 
-| Flag | Description |
-|------|-------------|
-| `--provider <name>` | AI provider: `anthropic`, `openai`, `google`, `deepseek`, `zhipu` |
-| `--model <name>` | Override the default model (e.g. `gpt-4o-mini`, `claude-haiku-3`) |
-| `--yolo` | Skip all confirmation prompts (dangerous commands run without asking) |
-| `--resume` | Restore the last session's conversation history |
-| `--mcp` | Enable MCP protocol (loads servers from `~/.code-cli/mcp.json`) |
-| `--coordinator` | Start in Coordinator mode (orchestrate sub-agents) |
-| `--swarm` | Start in Swarm mode (peer-to-peer multi-agent) |
-| `--thinking-budget <n>` | Set Extended Thinking token budget (default: 10000, Anthropic only) |
-| `--no-thinking` | Disable Extended Thinking |
-| `--no-ink` | Disable React + Ink UI, use chalk fallback |
-| `--setup` | Run interactive first-time setup wizard |
-| `--json` | Request structured JSON output |
+| 参数 | 说明 |
+|------|------|
+| `--provider <name>` | AI 提供商：`anthropic`、`openai`、`google`、`deepseek`、`zhipu` |
+| `--model <name>` | 覆盖默认模型（如 `gpt-4o-mini`、`claude-haiku-3`） |
+| `--yolo` | 跳过所有确认提示（危险命令直接执行） |
+| `--resume` | 恢复上次会话的对话历史 |
+| `--mcp` | 启用 MCP 协议（从 `~/.code-cli/mcp.json` 加载服务器） |
+| `--coordinator` | 启动 Coordinator 模式（编排子 Agent） |
+| `--swarm` | 启动 Swarm 模式（对等多 Agent 协作） |
+| `--thinking-budget <n>` | 设置 Extended Thinking token 预算（默认 10000，仅 Anthropic） |
+| `--no-thinking` | 禁用 Extended Thinking |
+| `--no-ink` | 禁用 React + Ink UI，使用 chalk 降级模式 |
+| `--setup` | 运行交互式首次配置向导 |
+| `--json` | 请求结构化 JSON 输出 |
 
-### REPL commands
+### REPL 命令
 
-| Command | What it does |
-|---------|-------------|
-| `/clear` | Clear conversation history |
-| `/cost` | Show token usage, cost estimate, and cache hit rate |
-| `/compact` | Manually trigger context compression |
-| `/plan` | Enter plan mode — agent explores read-only, then you approve the plan |
-| `/status` | Show session stats (messages, tokens, plan mode) |
-| `/remember <text>` | Save a cross-session memory (auto-classified) |
-| `/memory` | List all saved memories |
-| `/rules` | Show active permission rules |
-| `/mcp` | List connected MCP servers and their tools |
-| `/commit` | Generate a commit message and commit (built-in skill) |
-| `/review` | Code review current changes (built-in skill) |
-| `/debug` | Analyze errors and suggest fixes (built-in skill) |
-| `/config` | Open configuration settings |
-| `/skill <name>` | Run a custom skill |
-| `/task list` | List tasks |
-| `/task add <title>` | Create a task |
-| `/task run <id>` | Execute a task via sub-agent |
-| Ctrl+C | Abort current operation (press twice to exit) |
+| 命令 | 功能 |
+|------|------|
+| `/clear` | 清空对话历史 |
+| `/cost` | 显示 token 用量、成本估算、缓存命中率 |
+| `/compact` | 手动触发上下文压缩 |
+| `/plan` | 进入计划模式 — Agent 只读探索，你审批后再执行 |
+| `/status` | 显示会话统计（消息数、token、计划模式状态） |
+| `/remember <text>` | 保存跨会话记忆（自动分类） |
+| `/memory` | 列出所有已保存的记忆 |
+| `/rules` | 显示当前权限规则 |
+| `/mcp` | 列出已连接的 MCP 服务器和工具 |
+| `/commit` | 生成 commit message 并提交（内置技能） |
+| `/review` | 代码审查当前变更（内置技能） |
+| `/debug` | 分析错误并建议修复（内置技能） |
+| `/config` | 打开配置设置 |
+| `/skill <name>` | 运行自定义技能 |
+| `/task list` | 列出任务 |
+| `/task add <title>` | 创建任务 |
+| `/task run <id>` | 通过子 Agent 执行任务 |
+| Ctrl+C | 中止当前操作（按两次退出） |
 
-### Keyboard shortcuts
+### 键盘快捷键
 
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+L | Clear screen |
-| Ctrl+F | Search messages |
-| Ctrl+R | History search |
+| 快捷键 | 功能 |
+|--------|------|
+| Ctrl+L | 清屏 |
+| Ctrl+F | 搜索消息 |
+| Ctrl+R | 历史搜索 |
 
-## Providers
+## 提供商对比
 
-| Provider | Default model | Cost | Best for |
-|----------|--------------|------|----------|
-| `deepseek` | deepseek-chat | $ | Daily use, good balance of cost and quality |
-| `anthropic` | claude-sonnet-4 | $$$ | Best code quality, Extended Thinking support |
-| `openai` | gpt-4o | $$ | Good all-around |
-| `google` | gemini-2.5-flash | $ | Fast, large context window |
-| `zhipu` | glm-4-plus | $ | Chinese language tasks |
+| 提供商 | 默认模型 | 成本 | 适用场景 |
+|--------|----------|------|----------|
+| `deepseek` | deepseek-chat | $ | 日常使用，性价比最高 |
+| `anthropic` | claude-sonnet-4 | $$$ | 代码质量最好，支持 Extended Thinking |
+| `openai` | gpt-4o | $$ | 综合能力强 |
+| `google` | gemini-2.5-flash | $ | 速度快，上下文窗口大 |
+| `zhipu` | glm-4-plus | $ | 中文任务优化 |
 
-## MCP (External Tools)
+## MCP（外部工具）
 
-Connect external tools via the Model Context Protocol. Create `~/.code-cli/mcp.json`:
+通过 Model Context Protocol 接入外部工具。创建 `~/.code-cli/mcp.json`：
 
 ```json
 {
@@ -156,78 +156,78 @@ Connect external tools via the Model Context Protocol. Create `~/.code-cli/mcp.j
 }
 ```
 
-Then start with `--mcp`:
+启动时加 `--mcp`：
 
 ```bash
 code-cli --mcp
 ```
 
-MCP tools go through the same permission system as built-in tools.
+MCP 工具和内置工具使用相同的权限系统。
 
-## Memory
+## 记忆系统
 
-The agent remembers things across sessions. Use `/remember` to save notes:
+Agent 能跨会话记住信息。用 `/remember` 保存：
 
 ```
-> /remember Always use pnpm, not npm
-> /remember Project deadline is 2026-06-01
-> /remember Prefer functional style over classes
+> /remember 项目统一用 pnpm，不用 npm
+> /remember 项目截止日期是 2026-06-01
+> /remember 代码风格偏好函数式，少用 class
 ```
 
-Memories are stored in `~/.code-cli/memory/` as Markdown files and automatically recalled when relevant.
+记忆存储在 `~/.code-cli/memory/`，相关时自动召回。
 
-## Plan Mode
+## 计划模式
 
-For complex tasks, use plan mode to explore first, then execute:
+复杂任务先探索再执行：
 
 ```
 > /plan
-[PLAN]> Analyze the authentication module and propose a refactoring plan
-# Agent explores read-only, generates a plan
-# You review and approve/reject/edit the plan
-# Agent executes the approved plan with full tool access
+[PLAN]> 分析认证模块，提出重构方案
+# Agent 只读探索代码库，生成计划
+# 你审查并批准/拒绝/编辑计划
+# Agent 用完整工具权限执行批准的计划
 ```
 
-## Security
+## 安全机制
 
-The agent checks every shell command against 23 static security rules before execution:
+每条 Shell 命令执行前经过 23 项静态安全检查：
 
-- System path writes (`/etc/`, `/usr/`, `~/.ssh/`)
-- Recursive deletes (`rm -rf`)
-- Privilege escalation (`sudo`, `su`)
-- Network exfiltration (`curl POST`, `wget upload`)
-- Git destructive operations (`push --force`, `reset --hard`)
-- Docker escape (`--privileged`, `-v /:/host`)
-- And 17 more...
+- 系统路径写入（`/etc/`、`/usr/`、`~/.ssh/`）
+- 递归删除（`rm -rf`）
+- 权限提升（`sudo`、`su`）
+- 网络外泄（`curl POST`、`wget upload`）
+- Git 破坏性操作（`push --force`、`reset --hard`）
+- Docker 逃逸（`--privileged`、`-v /:/host`）
+- 还有 17 项更多检查...
 
-In non-yolo mode, dangerous commands require explicit confirmation. The permission system supports allow/deny rules in `~/.code-cli/settings.json`.
+非 yolo 模式下，危险命令需要明确确认。权限系统支持在 `~/.code-cli/settings.json` 中配置 allow/deny 规则。
 
-## Project Structure
+## 目录结构
 
 ```
 ~/.code-cli/
-├── mcp.json          # MCP server configuration
-├── settings.json     # Permission rules
-├── memory/           # Cross-session memories
-├── sessions/         # Session history
-├── skills/           # Custom skills (Markdown)
-├── tasks/            # Task management
-└── plans/            # Saved plans
+├── mcp.json          # MCP 服务器配置
+├── settings.json     # 权限规则
+├── memory/           # 跨会话记忆
+├── sessions/         # 会话历史
+├── skills/           # 自定义技能（Markdown）
+├── tasks/            # 任务管理
+└── plans/            # 保存的计划
 ```
 
-## Development
+## 开发
 
 ```bash
 git clone https://github.com/geallenboy/cc-cli.git
 cd cc-cli
 pnpm install
 pnpm run build
-pnpm test              # 1328 unit tests
+pnpm test              # 1328 个单元测试
 pnpm run check-all     # typecheck + lint + test
 ```
 
-See [docs/README.md](./docs/README.md) for the full development log (17 phases, ~90 tasks).
+完整开发日志见 [docs/README.md](./docs/README.md)（17 个阶段，~90 个任务）。
 
-## License
+## 许可证
 
 MIT

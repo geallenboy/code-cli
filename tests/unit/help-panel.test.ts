@@ -24,7 +24,7 @@ import {
 // ─── COMMANDS constant ───
 
 describe('COMMANDS', () => {
-  it('should contain all 11 required slash commands (需求 14.2)', () => {
+  it('should contain all required slash commands (需求 14.2)', () => {
     const names = COMMANDS.map(c => c.command);
     expect(names).toContain('/clear');
     expect(names).toContain('/cost');
@@ -34,13 +34,18 @@ describe('COMMANDS', () => {
     expect(names).toContain('/status');
     expect(names).toContain('/memory');
     expect(names).toContain('/remember');
+    expect(names).toContain('/commit');
+    expect(names).toContain('/review');
+    expect(names).toContain('/debug');
+    expect(names).toContain('/rules');
+    expect(names).toContain('/mcp');
     expect(names).toContain('/skill');
     expect(names).toContain('/task');
     expect(names).toContain('/help');
   });
 
-  it('should have exactly 11 entries', () => {
-    expect(COMMANDS).toHaveLength(11);
+  it('should have exactly 16 entries', () => {
+    expect(COMMANDS).toHaveLength(16);
   });
 
   it('should have non-empty descriptions for all commands', () => {
@@ -92,7 +97,7 @@ describe('formatCommands', () => {
 
   it('should format all default commands without error', () => {
     const lines = formatCommands(COMMANDS);
-    expect(lines).toHaveLength(11);
+    expect(lines).toHaveLength(16);
     for (const line of lines) {
       expect(line.length).toBeGreaterThan(0);
     }
