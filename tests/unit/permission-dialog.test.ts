@@ -512,8 +512,8 @@ describe('Ink PermissionDialog Component', () => {
         onChoice,
       }),
     );
-    // Wait for anti-misclick delay to expire
-    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    // Wait for anti-misclick delay to expire + React render cycle margin
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 300));
     stdin.write('y');
     expect(onChoice).toHaveBeenCalledWith('yes');
   });
@@ -528,7 +528,7 @@ describe('Ink PermissionDialog Component', () => {
         onChoice,
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 300));
     stdin.write('n');
     expect(onChoice).toHaveBeenCalledWith('no');
   });
@@ -543,7 +543,7 @@ describe('Ink PermissionDialog Component', () => {
         onChoice,
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 300));
     stdin.write('a');
     expect(onChoice).toHaveBeenCalledWith('always');
   });
@@ -558,7 +558,7 @@ describe('Ink PermissionDialog Component', () => {
         onChoice,
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 50));
+    await new Promise((resolve) => setTimeout(resolve, ANTI_MISCLICK_DELAY_MS + 300));
     stdin.write('x');
     expect(onChoice).not.toHaveBeenCalled();
   });
